@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KF2 Server Manager", "KF2 Server Manager.csproj", "{801089EF-80B9-428C-9D87-9A8C77F1D49E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{801089EF-80B9-428C-9D87-9A8C77F1D49E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{801089EF-80B9-428C-9D87-9A8C77F1D49E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{801089EF-80B9-428C-9D87-9A8C77F1D49E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{801089EF-80B9-428C-9D87-9A8C77F1D49E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C86F84C0-840D-40E9-BFE4-318CB2DB8183}
+	EndGlobalSection
+EndGlobal
