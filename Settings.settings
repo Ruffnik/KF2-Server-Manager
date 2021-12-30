@@ -1,0 +1,81 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SMan" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="ServerName" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">ReBoot your mind</Value>
+    </Setting>
+    <Setting Name="GamePassword" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">pons</Value>
+    </Setting>
+    <Setting Name="AdminPassword" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">ficken</Value>
+    </Setting>
+    <Setting Name="Difficulty" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="Mode" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="UsedForTakeover" Type="System.Boolean" Scope="Application">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="BannerLink" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/1f/1fa222692912b7d56a65e6ff8593f5cb8b4236fa_full.jpg</Value>
+    </Setting>
+    <Setting Name="ServerMOTD" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">A fine selection of workshop maps, no player collisions, what a splendid place to be!</Value>
+    </Setting>
+    <Setting Name="WebsiteLink" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">http://steamcommunity.com/id/reboot</Value>
+    </Setting>
+    <Setting Name="StockMaps" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)">&lt;?xml version="1.0" encoding="utf-16"?&gt;
+&lt;ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"&gt;
+  &lt;string&gt;KF-BurningParis&lt;/string&gt;
+  &lt;string&gt;KF-Bioticslab&lt;/string&gt;
+  &lt;string&gt;KF-Outpost&lt;/string&gt;
+  &lt;string&gt;KF-VolterManor&lt;/string&gt;
+  &lt;string&gt;KF-Catacombs&lt;/string&gt;
+  &lt;string&gt;KF-EvacuationPoint&lt;/string&gt;
+  &lt;string&gt;KF-Farmhouse&lt;/string&gt;
+  &lt;string&gt;KF-BlackForest&lt;/string&gt;
+  &lt;string&gt;KF-Prison&lt;/string&gt;
+  &lt;string&gt;KF-ContainmentStation&lt;/string&gt;
+  &lt;string&gt;KF-HostileGrounds&lt;/string&gt;
+  &lt;string&gt;KF-InfernalRealm&lt;/string&gt;
+  &lt;string&gt;KF-ZedLanding&lt;/string&gt;
+  &lt;string&gt;KF-Nuked&lt;/string&gt;
+  &lt;string&gt;KF-TheDescent&lt;/string&gt;
+  &lt;string&gt;KF-TragicKingdom&lt;/string&gt;
+  &lt;string&gt;KF-Nightmare&lt;/string&gt;
+  &lt;string&gt;KF-KrampusLair&lt;/string&gt;
+  &lt;string&gt;KF-DieSector&lt;/string&gt;
+  &lt;string&gt;KF-PowerCore_Holdout&lt;/string&gt;
+  &lt;string&gt;KF-Lockdown&lt;/string&gt;
+  &lt;string&gt;KF-Airship&lt;/string&gt;
+  &lt;string&gt;KF-ShoppingSpree&lt;/string&gt;
+  &lt;string&gt;KF-MonsterBall&lt;/string&gt;
+  &lt;string&gt;KF-Santasworkshop&lt;/string&gt;
+  &lt;string&gt;KF-Spillway&lt;/string&gt;
+  &lt;string&gt;KF-SteamFortress&lt;/string&gt;
+  &lt;string&gt;KF-AshwoodAsylum&lt;/string&gt;
+  &lt;string&gt;KF-Sanitarium&lt;/string&gt;
+  &lt;string&gt;KF-Biolapse&lt;/string&gt;
+  &lt;string&gt;KF-Desolation&lt;/string&gt;
+  &lt;string&gt;KF-HellmarkStation&lt;/string&gt;
+  &lt;string&gt;KF-Elysium&lt;/string&gt;
+  &lt;string&gt;KF-Dystopia2029&lt;/string&gt;
+  &lt;string&gt;KF-Moonbase&lt;/string&gt;
+  &lt;string&gt;KF-Netherhold&lt;/string&gt;
+  &lt;string&gt;KF-CarillonHamlet&lt;/string&gt;
+&lt;/ArrayOfString&gt;</Value>
+    </Setting>
+    <Setting Name="Collection" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">1802174804</Value>
+    </Setting>
+    <Setting Name="WorkshopMaps" Type="System.Collections.Specialized.StringCollection" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+  </Settings>
+</SettingsFile>
