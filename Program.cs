@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO.Compression;
 using System.Runtime.Serialization;
 using System.Text;
-using static System.Collections.Specialized.BitVector32;
 
 namespace SMan;
 
@@ -90,7 +89,7 @@ public partial class Program
         if (!args.Any())
         {
             using Mutex Mutex = new(false, "Global\\{A21AFB32-FCB6-44C7-8C49-9729B3116FD2}");
-            if (Mutex.WaitOne(0, false))
+            if (Mutex.WaitOne(0, false) && !Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Server)).Any())
             {
                 Task.WaitAll(new Task[]
                 {

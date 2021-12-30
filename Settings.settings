@@ -6,10 +6,10 @@
       <Value Profile="(Default)">ReBoot your mind</Value>
     </Setting>
     <Setting Name="GamePassword" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">pons</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="AdminPassword" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">ficken</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="Difficulty" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
@@ -18,7 +18,7 @@
       <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="UsedForTakeover" Type="System.Boolean" Scope="Application">
-      <Value Profile="(Default)">False</Value>
+      <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="BannerLink" Type="System.String" Scope="Application">
       <Value Profile="(Default)">https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/1f/1fa222692912b7d56a65e6ff8593f5cb8b4236fa_full.jpg</Value>
