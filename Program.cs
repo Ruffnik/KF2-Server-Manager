@@ -22,39 +22,44 @@ public partial class Program
     static readonly string Self = System.Reflection.Assembly.GetEntryAssembly()!.GetName().Name!;
     static readonly string Files = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Self);
     static readonly string Data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Self);
-    static readonly string URLSteamCMD = OperatingSystem.IsWindows() ?
-        "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip" :
-        OperatingSystem.IsLinux() ?
-        "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" :
-        throw new PlatformNotSupportedException();
-    static readonly string SteamCMD = Path.Combine(Files,
-        OperatingSystem.IsWindows() ?
-        "steamcmd.exe" :
-        OperatingSystem.IsLinux() ?
-        "steamcmd.sh" :
-        throw new PlatformNotSupportedException());
-    static readonly string Server = Path.Combine(Files,
-        OperatingSystem.IsWindows() ?
-        @"steamapps\common\kf2server\Binaries\Win64\KFServer.exe" :
-        throw new PlatformNotSupportedException());
-    static readonly string Config = Path.Combine(Files,
-        OperatingSystem.IsWindows() ?
-        @"steamapps\common\kf2server\KFGame\Config" :
-        throw new PlatformNotSupportedException());
-    static readonly string Logs = Path.Combine(Files,
-               OperatingSystem.IsWindows() ?
-        @"steamapps\common\kf2server\KFGame\Logs" :
-        throw new PlatformNotSupportedException());
-    static readonly string Cache = Path.Combine(Files,
-               OperatingSystem.IsWindows() ?
-        @"steamapps\common\kf2server\KFGame\Cache" :
-        throw new PlatformNotSupportedException());
-    static readonly string Prefix =
-        OperatingSystem.IsWindows() ?
-        "/" :
-        OperatingSystem.IsLinux() ?
-        "--" :
-        throw new PlatformNotSupportedException();
+    static readonly string URLSteamCMD = Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
+        PlatformID.Unix => "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz",
+        _ => throw new PlatformNotSupportedException()
+    };
+    static readonly string SteamCMD = Path.Combine(Files, Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => "steamcmd.exe",
+        PlatformID.Unix => "steamcmd.sh",
+        _ => throw new PlatformNotSupportedException()
+    });
+    static readonly string Server = Path.Combine(Files, Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => @"steamapps\common\kf2server\Binaries\Win64\KFServer.exe",
+        _ => throw new PlatformNotSupportedException()
+    });
+    static readonly string Config = Path.Combine(Files, Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Config",
+        _ => throw new PlatformNotSupportedException()
+    });
+    static readonly string Logs = Path.Combine(Files, Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Logs",
+        _ => throw new PlatformNotSupportedException()
+    });
+    static readonly string Cache = Path.Combine(Files, Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Cache",
+        _ => throw new PlatformNotSupportedException()
+    });
+    static readonly string Prefix = Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => "/",
+        PlatformID.Unix => "--",
+        _ => throw new PlatformNotSupportedException()
+    };
     static readonly string Help = $"\"{Self}\" [{Prefix}{Env} {{Files|Data}}]{Environment.NewLine}https://docs.microsoft.com/dotnet/core/extensions/configuration-providers#command-line-configuration-provider";
     const int AppID = 232130;
     enum Modes
@@ -91,6 +96,34 @@ public partial class Program
             using Mutex Mutex = new(false, "Global\\{A21AFB32-FCB6-44C7-8C49-9729B3116FD2}");
             if (!Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Server)).Any() && Mutex.WaitOne(0, false))
             {
+                var Values = Enumerable.Empty<int>();
+                foreach (var Difficulty in Enum.GetValues<Difficultues>())
+                {
+                    Values = Values.Append((int)Difficulty);
+                    Console.WriteLine($"{(int)Difficulty}={Decode(Difficulty)}");
+                }
+                Console.Write($"{Settings.Default.Difficulty}>");
+                Task.WaitAny(new[]
+                {
+                    Task.Delay(new TimeSpan(0,1,0)),
+                    Task.Run(() =>
+                    {
+                        while (true)
+                        {
+                            var Key = Console.ReadKey();
+                            if (ConsoleKey.Enter == Key.Key)
+                                break;
+                            else if (int.TryParse(new[] { Key.KeyChar }, out var Difficulty) && Values.Contains(Difficulty))
+                            {
+                                Settings.Default.Difficulty = Difficulty;
+                                Settings.Default.Save();
+                                Console.WriteLine();
+                                break;
+                            }
+                            Console.Write($"{Environment.NewLine}{Settings.Default.Difficulty}>");
+                        }
+                    }),
+                });
                 Task.WaitAll(new[]
                 {
                     Task.Run(() =>
@@ -105,25 +138,6 @@ public partial class Program
                         while (!File.Exists(Server));
                     }),
                 });
-                var Values = Enumerable.Empty<int>();
-                foreach (var Difficulty in Enum.GetValues<Difficultues>())
-                {
-                    Values = Values.Append((int)Difficulty);
-                    Console.WriteLine($"{(int)Difficulty}={Decode(Difficulty)}");
-                }
-                while (true)
-                {
-                    Console.Write($"{Settings.Default.Difficulty}>");
-                    var Line = Console.ReadLine()!.Trim();
-                    if (!Line.Any())
-                        break;
-                    else if (int.TryParse(Line, out var Difficulty) && Values.Contains(Difficulty))
-                    {
-                        Settings.Default.Difficulty = Difficulty;
-                        Settings.Default.Save();
-                        break;
-                    }
-                };
                 RunServer(GetMaps());
             }
         }
