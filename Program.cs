@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿//http://wiki.tripwireinteractive.com/index.php?title=Dedicated_Server_(Killing_Floor_2)
+using Microsoft.Extensions.Configuration;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -89,9 +90,9 @@ public partial class Program
         if (!args.Any())
         {
             using Mutex Mutex = new(false, "Global\\{A21AFB32-FCB6-44C7-8C49-9729B3116FD2}");
-            if (Mutex.WaitOne(0, false) && !Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Server)).Any())
+            if (!Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Server)).Any() && Mutex.WaitOne(0, false))
             {
-                Task.WaitAll(new Task[]
+                Task.WaitAll(new[]
                 {
                     Task.Run(() =>
                     {
@@ -126,8 +127,6 @@ public partial class Program
                 };
                 RunServer(GetMaps());
             }
-            else
-                return;
         }
         else
             Console.WriteLine(new ConfigurationBuilder().AddCommandLine(args).Build()[Env] switch
@@ -208,10 +207,16 @@ public partial class Program
         while (true)
         {
             var Runner = RunServer(Flag: true);
-            Task.WaitAny(new Task[]
+            Task.WaitAny(new[]
                 {
                     Task.Run(() => Runner.WaitForExit()),
-                    Task.Run(() =>{while (IDs.Where(ID => !Directory.EnumerateDirectories(Cache).Select(ID => ulong.Parse(GetDirectoryName(ID))).Contains(ID)).Any()){Thread.Sleep(60000); }}),
+                    Task.Run(() =>
+                    {
+                        while (IDs.Where(ID => !Directory.EnumerateDirectories(Cache).Select(ID => ulong.Parse(GetDirectoryName(ID))).Contains(ID)).Any())
+                        {
+                            Thread.Sleep(new TimeSpan(0,1,0));
+                        }
+                    }),
                 });
             if (!Runner.HasExited)
             {
@@ -348,7 +353,7 @@ public partial class Program
                 return false;
             else
             {
-                Data = Data.Where((Line, Find) => !Finds.Contains(Find)).ToArray();
+                Data = Data.Where((_, Find) => !Finds.Contains(Find)).ToArray();
                 Append(ref Data, Find!.Value, Key, Values);
                 return true;
             }
@@ -411,10 +416,10 @@ public partial class Program
 
     static string Decode<T>(T Enum) where T : Enum => typeof(T).GetMember(Enum!.ToString()!).Single().GetCustomAttributes(false).OfType<EnumMemberAttribute>().Single().Value!;
 
-    static StringCollection ToCollection(IEnumerable<string> Array)
+    static StringCollection ToCollection(IEnumerable<string> Collection)
     {
         StringCollection Result = new();
-        Result.AddRange(Array.ToArray());
+        Result.AddRange(Collection.ToArray());
         return Result;
     }
 
