@@ -1,5 +1,4 @@
-﻿//http://wiki.tripwireinteractive.com/index.php?title=Dedicated_Server_(Killing_Floor_2)
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using System.Collections.Specialized;
 using System.Diagnostics;
 using System.IO.Compression;
@@ -139,7 +138,8 @@ public partial class Program
 
     static Process RunServer(string[]? Maps = null, bool Flag = false)
     {
-        Maps ??= Settings.Default.StockMaps.Cast<string>().ToArray();
+        //http://wiki.tripwireinteractive.com/index.php?title=Dedicated_Server_(Killing_Floor_2)
+        Maps ??= new[] { "KF-BurningParis", "KF-Bioticslab", "KF-Outpost", "KF-VolterManor", "KF-Catacombs", "KF-EvacuationPoint" };
         var Log = Path.ChangeExtension(Path.GetRandomFileName(), Ext);
         Process Runner = new() { StartInfo = new(Server, Flag ? $"{Maps!.ElementAt(PRNG.Next(0, Maps!.Length))}?GamePassword={Path.GetFileNameWithoutExtension(Path.GetRandomFileName())} -log={Log}" : $"{Maps!.ElementAt(PRNG.Next(0, Maps!.Length))}?ConfigSubDir=\"{Settings.Default.ServerName}\"{(Modes.Survival != (Modes)Settings.Default.Mode ? "?Game=" + Decode((Modes)Settings.Default.Mode) : string.Empty) }{(Settings.Default.AdminPassword.Any() ? "?AdminPassword=" + Settings.Default.AdminPassword : string.Empty) }{(Settings.Default.GamePassword.Any() ? "?GamePassword=" + Settings.Default.GamePassword : string.Empty) }?GameLength={(int)Lengths.Normal}?Difficulty={Settings.Default.Difficulty} -log={Log} -autoupdate") };
         Log = Path.Combine(Logs, Log);
