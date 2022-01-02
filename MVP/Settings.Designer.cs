@@ -34,7 +34,7 @@ namespace SMan {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("pons")]
         public string GamePassword {
             get {
                 return ((string)(this["GamePassword"]));
@@ -43,7 +43,7 @@ namespace SMan {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        [global::System.Configuration.DefaultSettingValueAttribute("ficken")]
         public string AdminPassword {
             get {
                 return ((string)(this["AdminPassword"]));
@@ -52,7 +52,7 @@ namespace SMan {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int Difficulty {
             get {
                 return ((int)(this["Difficulty"]));
@@ -73,7 +73,7 @@ namespace SMan {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool UsedForTakeover {
             get {
                 return ((bool)(this["UsedForTakeover"]));

@@ -7,7 +7,7 @@ using System.Text;
 
 namespace SMan;
 
-public partial class Program
+public class MVP
 {
     #region Constants
     const string KFGame = "PCServer-KFGame.ini";
@@ -441,7 +441,7 @@ public partial class Program
     #endregion
     #region Plumbing
     static readonly Random PRNG = new();
-    static Program()
+    static MVP()
     {
         if (!Directory.Exists(Files))
             Directory.CreateDirectory(Files);
