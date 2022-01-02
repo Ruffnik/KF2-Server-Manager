@@ -2,6 +2,7 @@
 using System.IO.Compression;
 using System.Runtime.Serialization;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace SMan;
 
@@ -40,7 +41,7 @@ public class KF2
             else
                 break;
         }
-        Result = Result.OrderBy(ID => ID);
+        Result = Result.Order();
         return Result;
     }
 
@@ -78,7 +79,7 @@ public class KF2
         }
         var Missing = GetValue(Path.Combine(Config, KFGame), KFGameInfo, GameMapCycles).Split('"')[1..^1].Where(Map => ',' != Map[0]).Where(Map => !Stock.Contains(Map));
         if (Missing.Any())
-            Stock = Stock.Concat(Missing.OrderBy(Map => ExtensionMethods.PRNG.Next())).ToList();
+            Stock = Stock.Concat(Missing.Shuffle()).ToList();
         return (Stock, Directory.EnumerateDirectories(Cache).OrderBy(ID => ulong.Parse(ID.GetDirectoryName())).Select(ID => Directory.EnumerateFiles(ID, "*.kfm", SearchOption.AllDirectories).Single(ID => true)).Select(ID => Path.GetFileNameWithoutExtension(ID)));
     }
 
@@ -91,8 +92,19 @@ public class KF2
 
     public static void Clean()
     {
-        if (Directory.Exists(Logs))
-            Task.Run(() => new DirectoryInfo(Logs).GetFiles().ToList().ForEach(Log => Log.Delete()));
+        Clean(Logs);
+        Clean(Dumps);
+
+        void Clean(string Folder)
+        {
+            if (Directory.Exists(Folder))
+                Task.Run(() => new DirectoryInfo(Folder).GetFiles().ToList().ForEach(File =>
+                {
+                    try
+                    { File.Delete(); }
+                    catch (IOException) { }
+                }));
+        }
     }
 
     public static void Clean(string Cache, IEnumerable<ulong> IDs)
@@ -107,6 +119,12 @@ public class KF2
             );
     }
 
+    public bool Running => !Runner.HasExited;
+
+    public void Wait() => Runner.WaitForExit();
+
+    public void Kill() => Runner.Kill();
+
     public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null)
     {
         Init(Maps, IDs);
@@ -116,25 +134,23 @@ public class KF2
         HackINIs();
         while (true)
         {
+            try
+            { File.Delete(Log); }
+            catch (IOException)
+            { break; }
             Runner.Start();
+            while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
+            if (/*!ReadAllText(Log).Contains(InitSucceeded) ||*/ HackINIs())
+                Runner.Kill();
+            else
+                break;
             Task.Run(() =>
             {
                 Runner.WaitForExit();
                 File.Delete(Log);
             });
-            while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
-            if (HackINIs())
-                Runner.Kill();
-            else
-                break;
         }
     }
-
-    public bool Running => !Runner.HasExited;
-
-    public void Wait() => Runner.WaitForExit();
-
-    public void Kill() => Runner.Kill();
     #endregion
     #region SteamCMD
     static void RunSteamCMD(int AppID, string? UserName = null)
@@ -192,9 +208,13 @@ public class KF2
             (GamePassword is not null && TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", GamePassword!));
         HackedKFEngine =
             (Maps is not null && UsedForTakeover is not null && TrySet(ContentKFEngine!, "Engine.GameEngine", "bUsedForTakeover", UsedForTakeover!.Value)) |
-            (IDs is not null && (TryPrepend(ref ContentKFEngine!, "IpDrv.TcpNetDriver", "DownloadManagers", "OnlineSubsystemSteamworks.SteamWorkshopDownload") |
-            TrySet(ref ContentKFEngine!, "OnlineSubsystemSteamworks.KFWorkshopSteamworks", "ServerSubscribedWorkshopItems", IDs.Select(ID => ID.ToString()))));
-        HackedKFWeb = TrySet(ContentKFWeb!, "IpDrv.WebServer", "bEnabled", AdminPassword is not null);
+            (IDs is not null ?
+            (TryPrepend(ref ContentKFEngine!, TcpNetDriver, DownloadManagers, SteamWorkshopDownload) |
+            TrySet(ref ContentKFEngine!, KFWorkshopSteamworks, ServerSubscribedWorkshopItems, IDs.Select(ID => ID.ToString()))) :
+            (TryRemove(ref ContentKFEngine!, TcpNetDriver, DownloadManagers, SteamWorkshopDownload) |
+            TryRemove(ref ContentKFEngine!, KFWorkshopSteamworks))
+            );
+        HackedKFWeb = Maps is not null && TrySet(ContentKFWeb!, "IpDrv.WebServer", "bEnabled", AdminPassword is not null);
         if (HackedKFGame)
             File.WriteAllLines(FileKFGame!, ContentKFGame!, Encoding.ASCII);
         if (HackedKFEngine)
@@ -204,7 +224,7 @@ public class KF2
         return HackedKFGame || HackedKFEngine || HackedKFWeb;
     }
 
-    bool TryReadINIs() => TryRead(FileKFGame!, out ContentKFGame) && TryRead(FileKFEngine!, out ContentKFEngine) && TryRead(FileKFWeb!, out ContentKFWeb);
+    bool TryReadINIs() => TryRead(FileKFGame!, ref ContentKFGame) && TryRead(FileKFEngine!, ref ContentKFEngine) && TryRead(FileKFWeb!, ref ContentKFWeb);
     #endregion
     #region INI
     static bool TrySet(string[] Data, string Section, string Key, string Value)
@@ -257,7 +277,7 @@ public class KF2
         else
         {
             var ROCopy = Data;
-            if (Indices.Select(Index => GetValue(ROCopy, Index)).OrderBy(ID => ID).SequenceEqual(Values.OrderBy(ID => ID)))
+            if (Indices.Select(Index => GetValue(ROCopy, Index)).Order().SequenceEqual(Values.Order()))
                 return false;
             else
             {
@@ -272,6 +292,32 @@ public class KF2
             foreach (var Value in Values.Reverse())
                 Data = Data[0..(Index + 1)].Append(Key + Separator + Value).Concat(Data[(Index + 1)..]).ToArray();
         }
+    }
+
+    static bool TryRemove(ref string[] Data, string Section)
+    {
+        var Index = FindSection(Data, Section);
+        if (Index is not null)
+        {
+            while (Data.Length > Index && !Data[Index.Value].StartsWith($"["))
+            {
+                //Data = Data[0..Index.Value].Concat(Data[])
+                //Index++;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    static bool TryRemove(ref string[] Data, string Section, string Key, string Value)
+    {
+        foreach (var Index in FindValues(Data, Section, Key))
+            if (Value != GetValue(Data, Index))
+            {
+                Data = Data[0..(Index - 1)].Concat(Data[Index..]).ToArray();
+                return true;
+            }
+        return false;
     }
 
     static string GetValue(string[] Config, string Section, string Key) => GetValue(Config, FindValue(Config, Section, Key));
@@ -327,7 +373,7 @@ public class KF2
         return new StreamReader(Stream).ReadToEnd();
     }
 
-    static bool TryRead(string Path, out string[]? Collection)
+    static bool TryRead(string Path, ref string[]? Collection)
     {
         if (File.Exists(Path))
         {
@@ -335,18 +381,15 @@ public class KF2
             return true;
         }
         else
-        {
-            Collection = null;
             return false;
-        }
     }
     #endregion
     #region Plumbing
-    readonly Process Runner = new();
-    string[]? ContentKFGame, ContentKFEngine, ContentKFWeb, Maps;
-    IEnumerable<ulong>? IDs;
     string? FileKFGame, FileKFEngine, FileKFWeb, DirectoryConfig;
     bool HackedKFGame, HackedKFEngine, HackedKFWeb;
+    string[]? ContentKFGame, ContentKFEngine, ContentKFWeb, Maps;
+    IEnumerable<ulong>? IDs;
+    readonly Process Runner = new();
     #endregion
     #region Constants   
     const string KFGame = "PCServer-KFGame.ini";
@@ -354,7 +397,13 @@ public class KF2
     const string KFWeb = "KFWeb.ini";
     const string KFGameInfo = "KFGame.KFGameInfo";
     const string GameMapCycles = "GameMapCycles";
+    const string TcpNetDriver = "IpDrv.TcpNetDriver";
+    const string DownloadManagers = "DownloadManagers";
+    const string SteamWorkshopDownload = "OnlineSubsystemSteamworks.SteamWorkshopDownload";
+    const string KFWorkshopSteamworks = "OnlineSubsystemSteamworks.KFWorkshopSteamworks";
+    const string ServerSubscribedWorkshopItems = "ServerSubscribedWorkshopItems";
     const string InitCompleted = "Initializing Game Engine Completed";
+    //const string InitSucceeded = "Checking item";
     const string Extension = "log";
     const char Separator = '=';
     const int AppID = 232130;
@@ -396,6 +445,11 @@ public class KF2
         PlatformID.Win32NT => @"steamapps\common\kf2server\Binaries\Win64\steamapps\workshop\content\232090",
         _ => throw new PlatformNotSupportedException()
     });
+    static readonly string Dumps = Path.Combine(CWD, Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => "dumps",
+        _ => throw new PlatformNotSupportedException()
+    });
     #endregion
     #region Types
     public enum Games
@@ -426,13 +480,17 @@ public class KF2
     #endregion
 }
 
-static class ExtensionMethods
+public static class ExtensionMethods
 {
-    internal static readonly Random PRNG = new();
+    public static IEnumerable<T> Order<T>(this IEnumerable<T> Collection) => Collection.OrderBy(Item => Item);
+
+    internal static IEnumerable<T> Shuffle<T>(this IEnumerable<T> Collection) => Collection.OrderBy(Item => PRNG.Next());
 
     internal static string GetDirectoryName(this string Directory) => Path.TrimEndingDirectorySeparator(Directory).Split(Path.DirectorySeparatorChar)[^1];
 
     internal static string Decode<T>(this T Enum) where T : Enum => typeof(T).GetMember(Enum!.ToString()!).Single().GetCustomAttributes(false).OfType<EnumMemberAttribute>().Single().Value!;
 
     internal static T Random<T>(this IEnumerable<T> Collection) => Collection.ElementAt(PRNG.Next(0, Collection.Count()));
+
+    static readonly Random PRNG = new();
 }

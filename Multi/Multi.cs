@@ -1,25 +1,126 @@
-﻿namespace SMan;
+﻿using System.Collections.Specialized;
+using System.IO.Compression;
+using System.Runtime.Serialization;
+using System.Xml;
+
+namespace SMan;
 
 public class Multi
 {
     public static void Main()
     {
-        KF2.Clean();
-        KF2.Update();
-        var IDs = KF2.GetIDs(1802174804);
-        var Maps = KF2.GetMaps(new[] { "KF-BurningParis", "KF-Bioticslab", "KF-Outpost", "KF-VolterManor", "KF-Catacombs", "KF-EvacuationPoint", "KF-Farmhouse", "KF-BlackForest", "KF-Prison", "KF-ContainmentStation", "KF-HostileGrounds", "KF-InfernalRealm", "KF-ZedLanding", "KF-Nuked", "KF-TheDescent", "KF-TragicKingdom", "KF-Nightmare", "KF-KrampusLair", "KF-DieSector", "KF-PowerCore_Holdout", "KF-Lockdown", "KF-Airship", "KF-ShoppingSpree", "KF-MonsterBall", "KF-Santasworkshop", "KF-Spillway", "KF-SteamFortress", "KF-AshwoodAsylum", "KF-Sanitarium", "KF-Biolapse", "KF-Desolation", "KF-HellmarkStation", "KF-Elysium", "KF-Dystopia2029", "KF-Moonbase", "KF-Netherhold", "KF-CarillonHamlet" }, IDs);
-        var Scrap = new KF2()
-        {
-            ServerName = "ReBoot your mind",
-            AdminPassword = "ficken",
-            GamePassword = "pons",
-            BannerLink = "https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/1f/1fa222692912b7d56a65e6ff8593f5cb8b4236fa_full.jpg",
-            WebsiteLink = "http://steamcommunity.com/id/reboot",
-            ServerMOTD = new[] { "A fine selection of workshop maps, no player collisions, what a splendid place to be!" },
-            UsedForTakeover = false,
-            Difficulty = KF2.Difficultues.Hard,
-            GameLength = KF2.GameLengths.Normal,
-        };
-        Scrap.Run(Maps.Item1.Concat(Maps.Item2), IDs);
+        Setup();
+        Persist();
+        Cleanup();
+        Run(@"C:\Users\Kiril\AppData\Roaming\KF2 Server Manager\Private.xml");
+        Run(@"C:\Users\Kiril\AppData\Roaming\KF2 Server Manager\Public.xml");
     }
+
+    static void Run(string Config)
+    {
+        var Runner = Deserialize<KF2>(Config)!;
+        Runner.ServerName += ' ' +Path.GetFileNameWithoutExtension(Config);
+        Runner.Run(Maps.Item1!.Concat(Maps.Item2!)/*, IDs*/);
+    }
+
+    static void Cleanup()
+    {
+        KF2.Clean();
+        //if (IDs is not null)
+        //    KF2.Clean(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "My Games", "KillingFloor2", "KFGame", "Cache"), IDs);
+    }
+
+    static void Persist()
+    {
+        bool DoIDs = true;
+        bool DoMaps = true;
+        try
+        {
+            DoIDs = !IDs?.SequenceEqual(Decode(Settings.Default.IDs)) ?? false;
+        }
+        catch (ArgumentNullException) { }
+        try
+        {
+            DoMaps = !Maps.Item1!.SequenceEqual(Settings.Default.Maps.Cast<string>());
+        }
+        catch (ArgumentNullException) { }
+        if (DoMaps)
+            Settings.Default.Maps = Encode(Maps.Item1!);
+        if (DoIDs)
+            Settings.Default.IDs = Encode(IDs!);
+        try
+        {
+            Settings.Default.ID = Settings.Default.ID;
+        }
+        catch (NullReferenceException) { }
+        Settings.Default.Save();
+        if (DoMaps)
+        {
+            Serialize(nameof(Settings.Default.Maps), Path.Combine(CWD, string.Join(string.Empty, DateOnly.FromDateTime(DateTime.Now).ToString("o").Split(Path.GetInvalidFileNameChars()))), Settings.Default.Maps);
+        }
+    }
+
+    static void Setup()
+    {
+        try
+        {
+            IDs = KF2.GetIDs(Settings.Default.ID);
+        }
+        catch (NullReferenceException) { }
+        KF2.Update();
+        try
+        {
+            Maps.Item1 = Settings.Default.Maps.Cast<string>();
+        }
+        catch (ArgumentNullException) { }
+        Maps = KF2.GetMaps(Maps.Item1, IDs);
+    }
+
+    static IEnumerable<ulong> Decode(StringCollection Collection) => Collection.Cast<string>().Select(Item => ulong.Parse(Item));
+
+    static StringCollection Encode(IEnumerable<ulong> Collection) => Encode(Collection.Select(Item => Item.ToString()));
+
+    static StringCollection Encode(IEnumerable<string> Collection)
+    {
+        StringCollection Result = new();
+        Result.AddRange(Collection.ToArray());
+        return Result;
+    }
+
+    static void Serialize(string FileName, string Container, object Data)
+    {
+        if (string.Empty == Path.GetExtension(FileName))
+            FileName = Path.ChangeExtension(FileName, XML);
+        if (string.Empty == Path.GetExtension(Container))
+            Container = Path.ChangeExtension(Container, ZIP);
+        using var Stream = new FileStream(Container, FileMode.Create);
+        using var Archive = new ZipArchive(Stream, ZipArchiveMode.Create);
+        var Entry = Archive.CreateEntry(FileName);
+        using var Writer = XmlWriter.Create(Entry.Open());
+        new DataContractSerializer(Data.GetType()).WriteObject(Writer, Data);
+    }
+
+    static void Serialize(string FileName, object Data)
+    {
+        if (string.Empty == Path.GetExtension(FileName))
+            FileName = Path.ChangeExtension(FileName, XML);
+        using var Stream = new FileStream(FileName, FileMode.Create);
+        using var Writer = XmlWriter.Create(Stream);
+        new DataContractSerializer(Data.GetType()).WriteObject(Writer, Data);
+    }
+
+    static T? Deserialize<T>(string FileName)
+    {
+        if (!File.Exists(FileName))
+            FileName=Path.ChangeExtension(FileName, XML);
+        var Stream = new FileStream(FileName, FileMode.Open);
+        var Reader = XmlReader.Create(Stream);
+        return (T?)new DataContractSerializer(typeof(T)).ReadObject(Reader);
+    }
+
+    static IEnumerable<ulong>? IDs;
+    static (IEnumerable<string>?, IEnumerable<string>?) Maps;
+    static readonly string CWD = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), System.Reflection.Assembly.GetEntryAssembly()!.GetName().Name!);
+    const string XML = "xml";
+    const string ZIP = "zip";
 }
