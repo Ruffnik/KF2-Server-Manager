@@ -6,16 +6,16 @@
       <Value Profile="(Default)">ReBoot your mind</Value>
     </Setting>
     <Setting Name="GamePassword" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">pons</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="AdminPassword" Type="System.String" Scope="Application">
-      <Value Profile="(Default)">ficken</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="Difficulty" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">1</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="Mode" Type="System.Int32" Scope="Application">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="UsedForTakeover" Type="System.Boolean" Scope="Application">
       <Value Profile="(Default)">False</Value>

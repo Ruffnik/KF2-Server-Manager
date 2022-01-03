@@ -2,13 +2,13 @@
 using System.IO.Compression;
 using System.Runtime.Serialization;
 using System.Text;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace SMan;
 
 public class KF2
 {
     #region Configuration
+    public int Offset, OffsetWebAdmin;
     public string? ServerName, GamePassword, AdminPassword, BannerLink, WebsiteLink;
     public bool? UsedForTakeover;
     public IEnumerable<string>? ServerMOTD;
@@ -80,7 +80,7 @@ public class KF2
         var Missing = GetValue(Path.Combine(Config, KFGame), KFGameInfo, GameMapCycles).Split('"')[1..^1].Where(Map => ',' != Map[0]).Where(Map => !Stock.Contains(Map));
         if (Missing.Any())
             Stock = Stock.Concat(Missing.Shuffle()).ToList();
-        return (Stock, Directory.EnumerateDirectories(Cache).OrderBy(ID => ulong.Parse(ID.GetDirectoryName())).Select(ID => Directory.EnumerateFiles(ID, "*.kfm", SearchOption.AllDirectories).Single(ID => true)).Select(ID => Path.GetFileNameWithoutExtension(ID)));
+        return (Stock, Directory.EnumerateDirectories(Cache).OrderBy(ID => ulong.Parse(ID.GetDirectoryName())).Select(ID => Directory.EnumerateFiles(ID, "*.kfm", SearchOption.AllDirectories).Last()).Select(ID => Path.GetFileNameWithoutExtension(ID)));
     }
 
     public static void Update()
@@ -125,19 +125,25 @@ public class KF2
 
     public void Kill() => Runner.Kill();
 
-    public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null)
+    public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null, string? ConfigSubDir = null)
     {
+        this.ConfigSubDir = ConfigSubDir ?? ServerName;
         Init(Maps, IDs);
         var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-        Runner.StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ServerName is not null ? "?ConfigSubDir=\"" + ServerName + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GamePassword is not null ? "?GamePassword=" + GamePassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)} -log={Log} -autoupdate");
+        Runner.StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GamePassword is not null ? "?GamePassword=" + GamePassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)} -log={Log} -autoupdate");
         Log = Path.Combine(Logs, Log);
         HackINIs();
         while (true)
         {
-            try
-            { File.Delete(Log); }
-            catch (IOException)
-            { break; }
+            if (File.Exists(Log))
+                try
+                {
+                    File.Delete(Log);
+                }
+                catch (IOException)
+                {
+                    continue;
+                }
             Runner.Start();
             while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
             if (/*!ReadAllText(Log).Contains(InitSucceeded) ||*/ HackINIs())
@@ -173,7 +179,7 @@ public class KF2
     {
         this.Maps = Maps?.ToArray();
         this.IDs = IDs;
-        DirectoryConfig = Path.Combine(Config, ServerName ?? string.Empty);
+        DirectoryConfig = Path.Combine(Config, ConfigSubDir ?? string.Empty);
         FileKFGame = Path.Combine(DirectoryConfig, KFGame);
         FileKFEngine = Path.Combine(DirectoryConfig, KFEngine);
         FileKFWeb = Path.Combine(DirectoryConfig, KFWeb);
@@ -299,11 +305,8 @@ public class KF2
         var Index = FindSection(Data, Section);
         if (Index is not null)
         {
-            while (Data.Length > Index && !Data[Index.Value].StartsWith($"["))
-            {
-                //Data = Data[0..Index.Value].Concat(Data[])
-                //Index++;
-            }
+            while (Data.Length > Index && (Data[Index.Value].StartsWith($"[{Section}]") || !Data[Index.Value].StartsWith("[")))
+                Data = Data[0..Index.Value].Concat(Data[(Index.Value + 1)..]).ToArray();
             return true;
         }
         return false;
@@ -312,9 +315,9 @@ public class KF2
     static bool TryRemove(ref string[] Data, string Section, string Key, string Value)
     {
         foreach (var Index in FindValues(Data, Section, Key))
-            if (Value != GetValue(Data, Index))
+            if (Value == GetValue(Data, Index))
             {
-                Data = Data[0..(Index - 1)].Concat(Data[Index..]).ToArray();
+                Data = Data[0..Index].Concat(Data[(Index + 1)..]).ToArray();
                 return true;
             }
         return false;
@@ -385,7 +388,7 @@ public class KF2
     }
     #endregion
     #region Plumbing
-    string? FileKFGame, FileKFEngine, FileKFWeb, DirectoryConfig;
+    string? FileKFGame, FileKFEngine, FileKFWeb, DirectoryConfig, ConfigSubDir;
     bool HackedKFGame, HackedKFEngine, HackedKFWeb;
     string[]? ContentKFGame, ContentKFEngine, ContentKFWeb, Maps;
     IEnumerable<ulong>? IDs;

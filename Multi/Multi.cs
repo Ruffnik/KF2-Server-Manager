@@ -12,15 +12,15 @@ public class Multi
         Setup();
         Persist();
         Cleanup();
-        Run(@"C:\Users\Kiril\AppData\Roaming\KF2 Server Manager\Private.xml");
-        Run(@"C:\Users\Kiril\AppData\Roaming\KF2 Server Manager\Public.xml");
+
+        //Run(@"C:\Users\Kiril\AppData\Roaming\KF2 Server Manager\Private.xml");
+        //Run(@"C:\Users\Kiril\AppData\Roaming\KF2 Server Manager\Public.xml");
     }
 
     static void Run(string Config)
     {
         var Runner = Deserialize<KF2>(Config)!;
-        Runner.ServerName += ' ' +Path.GetFileNameWithoutExtension(Config);
-        Runner.Run(Maps.Item1!.Concat(Maps.Item2!)/*, IDs*/);
+        Runner.Run(Maps.Item1!.Concat(Maps.Item2!), /*IDs,*/ ConfigSubDir: Path.GetFileNameWithoutExtension(Config));
     }
 
     static void Cleanup()
@@ -45,7 +45,10 @@ public class Multi
         }
         catch (ArgumentNullException) { }
         if (DoMaps)
+        {
             Settings.Default.Maps = Encode(Maps.Item1!);
+            Serialize(nameof(Settings.Default.Maps), Path.Combine(CWD, string.Join(string.Empty, DateOnly.FromDateTime(DateTime.Now).ToString("o").Split(Path.GetInvalidFileNameChars()))), Settings.Default.Maps);
+        }
         if (DoIDs)
             Settings.Default.IDs = Encode(IDs!);
         try
@@ -54,24 +57,16 @@ public class Multi
         }
         catch (NullReferenceException) { }
         Settings.Default.Save();
-        if (DoMaps)
-        {
-            Serialize(nameof(Settings.Default.Maps), Path.Combine(CWD, string.Join(string.Empty, DateOnly.FromDateTime(DateTime.Now).ToString("o").Split(Path.GetInvalidFileNameChars()))), Settings.Default.Maps);
-        }
     }
 
     static void Setup()
     {
         try
-        {
-            IDs = KF2.GetIDs(Settings.Default.ID);
-        }
+        { IDs = KF2.GetIDs(Settings.Default.ID); }
         catch (NullReferenceException) { }
         KF2.Update();
         try
-        {
-            Maps.Item1 = Settings.Default.Maps.Cast<string>();
-        }
+        { Maps.Item1 = Settings.Default.Maps.Cast<string>(); }
         catch (ArgumentNullException) { }
         Maps = KF2.GetMaps(Maps.Item1, IDs);
     }
@@ -100,19 +95,19 @@ public class Multi
         new DataContractSerializer(Data.GetType()).WriteObject(Writer, Data);
     }
 
-    static void Serialize(string FileName, object Data)
-    {
-        if (string.Empty == Path.GetExtension(FileName))
-            FileName = Path.ChangeExtension(FileName, XML);
-        using var Stream = new FileStream(FileName, FileMode.Create);
-        using var Writer = XmlWriter.Create(Stream);
-        new DataContractSerializer(Data.GetType()).WriteObject(Writer, Data);
-    }
+    //static void Serialize(string FileName, object Data)
+    //{
+    //    if (string.Empty == Path.GetExtension(FileName))
+    //        FileName = Path.ChangeExtension(FileName, XML);
+    //    using var Stream = new FileStream(FileName, FileMode.Create);
+    //    using var Writer = XmlWriter.Create(Stream);
+    //    new DataContractSerializer(Data.GetType()).WriteObject(Writer, Data);
+    //}
 
     static T? Deserialize<T>(string FileName)
     {
         if (!File.Exists(FileName))
-            FileName=Path.ChangeExtension(FileName, XML);
+            FileName = Path.ChangeExtension(FileName, XML);
         var Stream = new FileStream(FileName, FileMode.Open);
         var Reader = XmlReader.Create(Stream);
         return (T?)new DataContractSerializer(typeof(T)).ReadObject(Reader);
@@ -123,4 +118,15 @@ public class Multi
     static readonly string CWD = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), System.Reflection.Assembly.GetEntryAssembly()!.GetName().Name!);
     const string XML = "xml";
     const string ZIP = "zip";
+    static readonly IEnumerable<KF2> Farm = Enumerable.Empty<KF2>();
+
+    static Multi()
+    {
+        var Files = Directory.EnumerateFiles(CWD, "*." + XML);
+        foreach (var Config in Files)
+        {
+            var Instance = Deserialize<KF2>(Config)!;
+        }
+        Farm = Directory.EnumerateFiles(CWD, "*." + XML).Select(Config => Deserialize<KF2>(Config)!);
+    }
 }

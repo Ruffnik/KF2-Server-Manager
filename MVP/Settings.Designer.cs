@@ -34,7 +34,7 @@ namespace SMan {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("pons")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string GamePassword {
             get {
                 return ((string)(this["GamePassword"]));
@@ -43,7 +43,7 @@ namespace SMan {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("ficken")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string AdminPassword {
             get {
                 return ((string)(this["AdminPassword"]));
@@ -52,7 +52,6 @@ namespace SMan {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public int Difficulty {
             get {
                 return ((int)(this["Difficulty"]));
@@ -64,7 +63,6 @@ namespace SMan {
         
         [global::System.Configuration.ApplicationScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
         public int Mode {
             get {
                 return ((int)(this["Mode"]));
