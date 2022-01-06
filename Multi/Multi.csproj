@@ -5,7 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>KF2 Server Manager</AssemblyName>
+    <AssemblyName>KF2-Server-Manager</AssemblyName>
     <RootNamespace>SMan</RootNamespace>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>

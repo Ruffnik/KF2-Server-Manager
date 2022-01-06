@@ -119,18 +119,18 @@ public class KF2
             );
     }
 
-    public bool Running => !Runner.HasExited;
+    public bool Running => !Runner?.HasExited ?? false;
 
-    public void Wait() => Runner.WaitForExit();
+    public void Wait() => Runner!.WaitForExit();
 
-    public void Kill() => Runner.Kill();
+    public void Kill() => Runner!.Kill();
 
     public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null)
     {
         ConfigSubDir ??= ServerName;
         Init(Maps, IDs);
         var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-        Runner.StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GamePassword is not null ? "?GamePassword=" + GamePassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate");
+        Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate") };
         Log = Path.Combine(Logs, Log);
         HackINIs();
         while (true)
@@ -202,7 +202,7 @@ public class KF2
     {
         if (!TryReadINIs())
             return true;
-        HackedKFGame = Maps is not null ? (
+        HackedKFGame = (Maps is not null && (
             (AdminPassword is not null && TrySet(ContentKFGame!, "Engine.GameInfo", "bAdminCanPause", true)) |
             (ServerName is not null && TrySet(ContentKFGame!, "Engine.GameReplicationInfo", "ServerName", ServerName)) |
             (BannerLink is not null && TrySet(ContentKFGame!, KFGameInfo, "BannerLink", BannerLink)) |
@@ -210,8 +210,7 @@ public class KF2
             (WebsiteLink is not null && TrySet(ContentKFGame!, KFGameInfo, "WebsiteLink", WebsiteLink)) |
             TrySet(ContentKFGame!, KFGameInfo, "ClanMotto", string.Empty) |
             TrySet(ContentKFGame!, KFGameInfo, "bDisableTeamCollision", true) |
-            TrySet(ContentKFGame!, KFGameInfo, GameMapCycles, Encode(Maps))|
-            TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", string.Empty)) :
+            TrySet(ContentKFGame!, KFGameInfo, GameMapCycles, Encode(Maps)))) |
             TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", GamePassword ?? string.Empty);
         HackedKFEngine =
             (Maps is not null && UsedForTakeover is not null && TrySet(ContentKFEngine!, "Engine.GameEngine", "bUsedForTakeover", UsedForTakeover!.Value)) |
@@ -393,7 +392,7 @@ public class KF2
     bool HackedKFGame, HackedKFEngine, HackedKFWeb;
     string[]? ContentKFGame, ContentKFEngine, ContentKFWeb, Maps;
     IEnumerable<ulong>? IDs;
-    readonly Process Runner = new();
+    Process? Runner;
     #endregion
     #region Constants   
     const int Base = 7777 + 1;
