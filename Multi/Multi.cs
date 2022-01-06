@@ -118,15 +118,18 @@ public class Multi
 
     static Multi()
     {
-        Directory.EnumerateFiles(CWD, "*." + XML).ToList().ForEach(Config =>
-        {
-            var Server = Deserialize<KF2>(Config)!;
-            Server.ConfigSubDir = Path.GetFileNameWithoutExtension(Config);
-            Server.Offset = Farm.Count();
-            if (Server.AdminPassword is not null)
-                Server.OffsetWebAdmin = Farm.Where(Server => Server.AdminPassword is not null).Count();
-            Farm = Farm.Append(Server);
-        });
+        if (Directory.Exists(CWD))
+            Directory.EnumerateFiles(CWD, "*." + XML).ToList().ForEach(Config =>
+            {
+                var Server = Deserialize<KF2>(Config)!;
+                Server.ConfigSubDir = Path.GetFileNameWithoutExtension(Config);
+                Server.Offset = Farm.Count();
+                if (Server.AdminPassword is not null)
+                    Server.OffsetWebAdmin = Farm.Where(Server => Server.AdminPassword is not null).Count();
+                Farm = Farm.Append(Server);
+            });
+        else
+            Directory.CreateDirectory(CWD);
     }
 
     static IEnumerable<ulong>? IDs;
