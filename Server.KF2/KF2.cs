@@ -8,9 +8,9 @@ namespace SMan;
 public class KF2
 {
     #region Configuration
-    public int Offset, OffsetWebAdmin;
-    public string? ServerName, GamePassword, AdminPassword, BannerLink, WebsiteLink;
     public bool? UsedForTakeover;
+    public int? Offset, OffsetWebAdmin;
+    public string? ServerName, GamePassword, AdminPassword, BannerLink, WebsiteLink, ConfigSubDir;
     public IEnumerable<string>? ServerMOTD;
     public Games? Game;
     public Difficultues? Difficulty;
@@ -125,12 +125,12 @@ public class KF2
 
     public void Kill() => Runner.Kill();
 
-    public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null, string? ConfigSubDir = null)
+    public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null)
     {
-        this.ConfigSubDir = ConfigSubDir ?? ServerName;
+        ConfigSubDir ??= ServerName;
         Init(Maps, IDs);
         var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-        Runner.StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GamePassword is not null ? "?GamePassword=" + GamePassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)} -log={Log} -autoupdate");
+        Runner.StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GamePassword is not null ? "?GamePassword=" + GamePassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate");
         Log = Path.Combine(Logs, Log);
         HackINIs();
         while (true)
@@ -146,7 +146,7 @@ public class KF2
                 }
             Runner.Start();
             while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
-            if (/*!ReadAllText(Log).Contains(InitSucceeded) ||*/ HackINIs())
+            if (HackINIs())
                 Runner.Kill();
             else
                 break;
@@ -210,8 +210,9 @@ public class KF2
             (WebsiteLink is not null && TrySet(ContentKFGame!, KFGameInfo, "WebsiteLink", WebsiteLink)) |
             TrySet(ContentKFGame!, KFGameInfo, "ClanMotto", string.Empty) |
             TrySet(ContentKFGame!, KFGameInfo, "bDisableTeamCollision", true) |
-            TrySet(ContentKFGame!, KFGameInfo, GameMapCycles, Encode(Maps))) :
-            (GamePassword is not null && TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", GamePassword!));
+            TrySet(ContentKFGame!, KFGameInfo, GameMapCycles, Encode(Maps))|
+            TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", string.Empty)) :
+            TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", GamePassword ?? string.Empty);
         HackedKFEngine =
             (Maps is not null && UsedForTakeover is not null && TrySet(ContentKFEngine!, "Engine.GameEngine", "bUsedForTakeover", UsedForTakeover!.Value)) |
             (IDs is not null ?
@@ -388,13 +389,15 @@ public class KF2
     }
     #endregion
     #region Plumbing
-    string? FileKFGame, FileKFEngine, FileKFWeb, DirectoryConfig, ConfigSubDir;
+    string? FileKFGame, FileKFEngine, FileKFWeb, DirectoryConfig;
     bool HackedKFGame, HackedKFEngine, HackedKFWeb;
     string[]? ContentKFGame, ContentKFEngine, ContentKFWeb, Maps;
     IEnumerable<ulong>? IDs;
     readonly Process Runner = new();
     #endregion
     #region Constants   
+    const int Base = 7777 + 1;
+    const int AdminBase = 8080 + 1;
     const string KFGame = "PCServer-KFGame.ini";
     const string KFEngine = "PCServer-KFEngine.ini";
     const string KFWeb = "KFWeb.ini";
@@ -406,7 +409,6 @@ public class KF2
     const string KFWorkshopSteamworks = "OnlineSubsystemSteamworks.KFWorkshopSteamworks";
     const string ServerSubscribedWorkshopItems = "ServerSubscribedWorkshopItems";
     const string InitCompleted = "Initializing Game Engine Completed";
-    //const string InitSucceeded = "Checking item";
     const string Extension = "log";
     const char Separator = '=';
     const int AppID = 232130;
