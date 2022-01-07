@@ -11,11 +11,14 @@ public class Multi
     {
         while (true)
         {
+            if (Farm.All(Server => !Server.Running))
+                KF2.Update();
             Update();
             if (NewIDs || NewMaps)
                 Kill();
             Cleanup();
             Run();
+            Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
             Task.WaitAny(new[]
             {
                 Task.Delay(new TimeSpan(1,0,0)),
@@ -24,7 +27,7 @@ public class Multi
         }
     }
 
-    static void Run() => Farm.ToList().AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
+    static void Run() => Farm.Where(Server => !Server.Running).ToList().AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
 
     static void Kill() => Farm.Where(Server => Server.Running).ToList().AsParallel().ForAll(Server => Server.Kill());
 
@@ -41,7 +44,6 @@ public class Multi
         try
         { IDs = KF2.GetIDs(Settings.Default.ID); }
         catch (NullReferenceException) { }
-        KF2.Update();
         try
         { Maps.Item1 = Settings.Default.Maps.Cast<string>(); }
         catch (ArgumentNullException) { }
@@ -116,6 +118,21 @@ public class Multi
         return (T?)new DataContractSerializer(typeof(T)).ReadObject(Reader);
     }
 
+    static string GetHTML()
+    {
+        IP = new string(new HttpClient().GetAsync("http://www.what-is-my-ipv4.com").Result.Content.ReadAsStringAsync().Result.ToCharArray().Where(Char => !char.IsWhiteSpace(Char)).ToArray()).Split("<strongclass='ip'>")[1].Split("</strong>")[0];
+
+        return $"<!doctype html><head>{GetHead()}</head><body>{GetBody()}</body></html>";
+
+        static string GetHead()
+        {
+            var TheSource = $"http://{IP}:8081/images/";
+            return $"<title>{Farm.Random().ServerName!}</title><link rel=\"shortcut icon\" href=\"{TheSource}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2modern.css\">";
+        }
+
+        static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=\"http://{IP}:" + Server.PortWebAdmin + "\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>"));
+    }
+
     static Multi()
     {
         if (Directory.Exists(CWD))
@@ -139,4 +156,5 @@ public class Multi
     const string ZIP = "zip";
     static IEnumerable<KF2> Farm = Enumerable.Empty<KF2>();
     static bool NewIDs, NewMaps;
+    static string IP = string.Empty;
 }

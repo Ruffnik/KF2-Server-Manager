@@ -127,6 +127,8 @@ public class KF2
 
     public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null)
     {
+        if (Running)
+            return;
         ConfigSubDir ??= ServerName;
         Init(Maps, IDs);
         var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
@@ -454,6 +456,8 @@ public class KF2
         PlatformID.Win32NT => "dumps",
         _ => throw new PlatformNotSupportedException()
     });
+    public int Port { get => Base + Offset ?? -1; }
+    public int? PortWebAdmin { get => AdminPassword is not null ? AdminBase + OffsetWebAdmin ?? -1 : null; }
     #endregion
     #region Types
     public enum Games
@@ -486,6 +490,8 @@ public class KF2
 
 public static class ExtensionMethods
 {
+    public static T Random<T>(this IEnumerable<T> Collection) => Collection.ElementAt(PRNG.Next(0, Collection.Count()));
+
     public static IEnumerable<T> Order<T>(this IEnumerable<T> Collection) => Collection.OrderBy(Item => Item);
 
     internal static IEnumerable<T> Shuffle<T>(this IEnumerable<T> Collection) => Collection.OrderBy(Item => PRNG.Next());
@@ -493,8 +499,6 @@ public static class ExtensionMethods
     internal static string GetDirectoryName(this string Directory) => Path.TrimEndingDirectorySeparator(Directory).Split(Path.DirectorySeparatorChar)[^1];
 
     internal static string Decode<T>(this T Enum) where T : Enum => typeof(T).GetMember(Enum!.ToString()!).Single().GetCustomAttributes(false).OfType<EnumMemberAttribute>().Single().Value!;
-
-    internal static T Random<T>(this IEnumerable<T> Collection) => Collection.ElementAt(PRNG.Next(0, Collection.Count()));
 
     static readonly Random PRNG = new();
 }

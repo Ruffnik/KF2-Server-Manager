@@ -50,5 +50,8 @@
     <Setting Name="IDs" Type="System.Collections.Specialized.StringCollection" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
+    <Setting Name="HTML" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\inetpub\wwwroot\Default.htm</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

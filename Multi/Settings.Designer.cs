@@ -96,5 +96,17 @@ namespace SMan {
                 this["IDs"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("C:\\inetpub\\wwwroot\\Default.htm")]
+        public string HTML {
+            get {
+                return ((string)(this["HTML"]));
+            }
+            set {
+                this["HTML"] = value;
+            }
+        }
     }
 }
