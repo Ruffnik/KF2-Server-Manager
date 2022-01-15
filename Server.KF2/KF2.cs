@@ -65,7 +65,7 @@ public class KF2
                     Task.Run(() => Runner.Wait()),
                     Task.Run(() =>
                     {
-                        while (IDs is not null && IDs.Where(ID => !Directory.EnumerateDirectories(Cache).Select(ID => ulong.Parse(ID.GetDirectoryName())).Contains(ID)).Any())
+                        while (IDs is not null && IDs.Where(ID => !Directory.EnumerateDirectories(Cache).Where(Dir => Directory.EnumerateFiles(Dir, "*.kfm", SearchOption.AllDirectories).Any()).Select(ID => ulong.Parse(ID.GetDirectoryName())).Contains(ID)).Any())
                         {
                             Thread.Sleep(new TimeSpan(0,1,0));
                         }
@@ -127,37 +127,40 @@ public class KF2
 
     public void Run(IEnumerable<string>? Maps = null, IEnumerable<ulong>? IDs = null, string? Map = null)
     {
-        if (Running)
-            return;
-        ConfigSubDir ??= ServerName;
-        Init(Maps, IDs);
-        var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-        Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate") };
-        Log = Path.Combine(Logs, Log);
-        HackINIs();
-        while (true)
+        if (!Running)
         {
-            if (File.Exists(Log))
-                try
-                {
-                    File.Delete(Log);
-                }
-                catch (IOException)
-                {
-                    continue;
-                }
-            Runner.Start();
-            while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
-            if (HackINIs())
-                Runner.Kill();
-            else
-                break;
-            Task.Run(() =>
+            ConfigSubDir ??= ServerName;
+            Init(Maps, IDs);
+            var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
+            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate") };
+            Log = Path.Combine(Logs, Log);
+            HackINIs();
+            while (true)
             {
-                Runner.WaitForExit();
-                File.Delete(Log);
-            });
+                if (File.Exists(Log))
+                    try
+                    {
+                        File.Delete(Log);
+                    }
+                    catch (IOException)
+                    {
+                        continue;
+                    }
+                Runner.Start();
+                while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
+                if (HackINIs())
+                    Runner.Kill();
+                else
+                    break;
+                Task.Run(() =>
+                {
+                    Runner.WaitForExit();
+                    File.Delete(Log);
+                });
+            }
         }
+        else
+            throw new InvalidOperationException();
     }
     #endregion
     #region SteamCMD

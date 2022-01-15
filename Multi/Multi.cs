@@ -9,21 +9,30 @@ public class Multi
 {
     public static void Main()
     {
-        while (true)
+        try
         {
-            if (Farm.All(Server => !Server.Running))
-                KF2.Update();
-            Update();
-            if (NewIDs || NewMaps)
-                Kill();
-            Cleanup();
-            Run();
-            Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
-            Task.WaitAny(new[]
+            while (true)
             {
+                if (Farm.All(Server => !Server.Running))
+                    KF2.Update();
+                Update();
+                if (NewIDs || NewMaps)
+                    Kill();
+                Cleanup();
+                Run();
+                if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
+                    Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
+                Task.WaitAny(new[]
+                {
                 Task.Delay(new TimeSpan(1,0,0)),
                 Task.Run(()=>Farm.ToList().AsParallel().ForAll(Server => Server.Wait())),
             });
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            Console.ReadKey();
         }
     }
 
