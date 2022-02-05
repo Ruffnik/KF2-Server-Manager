@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Server.KF2\Server.KF2.csproj" />
+    <ProjectReference Include="..\Server.TS\Server.TS.csproj" />
   </ItemGroup>
 
   <ItemGroup>

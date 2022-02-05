@@ -24,6 +24,11 @@ public class Multi
             Run();
             if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
                 Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
+            Task.Run(() =>
+            {
+                TS.Update();
+                TS.Run();
+            });
             Task.WaitAny(new[]
             {
                 Task.Delay(new TimeSpan(1,0,0)),
