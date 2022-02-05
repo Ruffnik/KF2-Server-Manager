@@ -9,31 +9,36 @@ public class Multi
 {
     public static void Main()
     {
+#if !DEBUG
         try
         {
-            while (true)
+#endif
+        while (true)
+        {
+            if (Farm.All(Server => !Server.Running))
+                KF2.Update();
+            Update();
+            if (NewIDs || NewMaps)
+                Kill();
+            Cleanup();
+            Run();
+            if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
+                Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
+            Task.WaitAny(new[]
             {
-                if (Farm.All(Server => !Server.Running))
-                    KF2.Update();
-                Update();
-                if (NewIDs || NewMaps)
-                    Kill();
-                Cleanup();
-                Run();
-                if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
-                    Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
-                Task.WaitAny(new[]
-                {
                 Task.Delay(new TimeSpan(1,0,0)),
-                Task.Run(()=>Farm.ToList().AsParallel().ForAll(Server => Server.Wait())),
+                Task.Run(()=>Farm.ToList().AsParallel().ForAll(Server => Server.Wait()))
             });
-            }
         }
+#if !DEBUG
+    }
         catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
-            Console.ReadKey();
+            if (OperatingSystem.IsWindows())
+                Console.ReadKey();
         }
+#endif
     }
 
     static void Run() => Farm.Where(Server => !Server.Running).ToList().AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
@@ -136,10 +141,10 @@ public class Multi
         static string GetHead()
         {
             var TheSource = $"http://{IP}:8081/images/";
-            return $"<title>{Farm.Random().ServerName!}</title><link rel=\"shortcut icon\" href=\"{TheSource}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2modern.css\">";
+            return $"<title>{Farm.Random().ServerName!}</title><link rel=\"shortcut icon\" href=\"{TheSource}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
         }
 
-        static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=\"http://{IP}:" + Server.PortWebAdmin + "\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>"));
+        static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=# onclick=\"WebAdmin(" + Server.PortWebAdmin + ")\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>")) + "<footer>" + DateTime.Now.ToString("o") + "</footer>";
     }
 
     static Multi()

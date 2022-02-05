@@ -172,10 +172,25 @@ public class KF2
             new HttpClient().GetAsync(URLSteamCMD).Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
             if (OperatingSystem.IsWindows())
                 new ZipArchive(Stream).ExtractToDirectory(CWD);
+            else if (OperatingSystem.IsLinux())
+            {
+                if (!Directory.Exists(CWD))
+                    Directory.CreateDirectory(CWD);
+                using var Writer = File.Create(SteamCMD);
+                using GZipStream Decompressor = new(Stream, CompressionMode.Decompress);
+                Decompressor.CopyTo(Writer);
+            }
             else
                 throw new PlatformNotSupportedException();
         }
-        Process.Start(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit")!.WaitForExit();
+        if (OperatingSystem.IsWindows())
+            Process.Start(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit")!.WaitForExit();
+        else if (OperatingSystem.IsLinux())
+        {
+            //Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit"),fileName="")!.WaitForExit();
+        }
+        else
+            throw new PlatformNotSupportedException();
     }
     #endregion
     #region KFServer
@@ -432,33 +447,39 @@ public class KF2
     static readonly string KFServer = Path.Combine(CWD, Environment.OSVersion.Platform switch
     {
         PlatformID.Win32NT => @"steamapps\common\kf2server\Binaries\Win64\KFServer.exe",
+        PlatformID.Unix => "steamapps/common/kf2server/Binaries/Win64/KFGameSteamServer.bin.x86_64",
         _ => throw new PlatformNotSupportedException()
     });
-    static readonly string Logs = Path.Combine(CWD, Environment.OSVersion.Platform switch
-    {
-        PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Logs",
-        _ => throw new PlatformNotSupportedException()
-    });
-    static readonly string Cache = Path.Combine(CWD, Environment.OSVersion.Platform switch
-    {
-        PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Cache",
-        _ => throw new PlatformNotSupportedException()
-    });
-    static readonly string Config = Path.Combine(CWD, Environment.OSVersion.Platform switch
-    {
-        PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Config",
-        _ => throw new PlatformNotSupportedException()
-    });
-    static readonly string Workshop = Path.Combine(CWD, Environment.OSVersion.Platform switch
-    {
-        PlatformID.Win32NT => @"steamapps\common\kf2server\Binaries\Win64\steamapps\workshop\content\232090",
-        _ => throw new PlatformNotSupportedException()
-    });
-    static readonly string Dumps = Path.Combine(CWD, Environment.OSVersion.Platform switch
-    {
-        PlatformID.Win32NT => "dumps",
-        _ => throw new PlatformNotSupportedException()
-    });
+    static readonly string Logs = Path.Combine(CWD, "steamapps", "common", "kf2server", "KFGame", "Logs");
+    //static readonly string Logs = Path.Combine(CWD, Environment.OSVersion.Platform switch
+    //{
+    //    PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Logs",
+    //    _ => throw new PlatformNotSupportedException()
+    //});
+    static readonly string Cache = Path.Combine(CWD, "steamapps", "common", "kf2server", "KFGame", "Cache");
+    //static readonly string Cache = Path.Combine(CWD, Environment.OSVersion.Platform switch
+    //{
+    //    PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Cache",
+    //    _ => throw new PlatformNotSupportedException()
+    //});
+    static readonly string Config = Path.Combine(CWD, "steamapps", "common", "kf2server", "KFGame", "Config");
+    //static readonly string Config = Path.Combine(CWD, Environment.OSVersion.Platform switch
+    //{
+    //    PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Config",
+    //    _ => throw new PlatformNotSupportedException()
+    //});
+    static readonly string Workshop = Path.Combine(CWD, "steamapps", "common", "kf2server", "Binaries", "Win64", "Win64", "steamapps", "workshop", "content", "232090");
+    //static readonly string Workshop = Path.Combine(CWD, Environment.OSVersion.Platform switch
+    //{
+    //    PlatformID.Win32NT => @"steamapps\common\kf2server\Binaries\Win64\steamapps\workshop\content\232090",
+    //    _ => throw new PlatformNotSupportedException()
+    //});
+    static readonly string Dumps = Path.Combine(CWD, "dumps");
+    //static readonly string Dumps = Path.Combine(CWD, Environment.OSVersion.Platform switch
+    //{
+    //    PlatformID.Win32NT => "dumps",
+    //    _ => throw new PlatformNotSupportedException()
+    //});
     public int Port { get => Base + Offset ?? -1; }
     public int? PortWebAdmin { get => AdminPassword is not null ? AdminBase + OffsetWebAdmin ?? -1 : null; }
     #endregion
