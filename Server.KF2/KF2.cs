@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -168,17 +169,27 @@ public class KF2
     {
         if (!File.Exists(SteamCMD))
         {
-            MemoryStream Stream = new();
-            new HttpClient().GetAsync(URLSteamCMD).Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
             if (OperatingSystem.IsWindows())
+            {
+                MemoryStream Stream = new();
+                new HttpClient().GetAsync(URLSteamCMD).Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
                 new ZipArchive(Stream).ExtractToDirectory(CWD);
+            }
             else if (OperatingSystem.IsLinux())
             {
                 if (!Directory.Exists(CWD))
                     Directory.CreateDirectory(CWD);
-                using var Writer = File.Create(SteamCMD);
-                using GZipStream Decompressor = new(Stream, CompressionMode.Decompress);
-                Decompressor.CopyTo(Writer);
+                var Temp = Path.Combine(CWD, Path.ChangeExtension(SteamCMD, "tar.gz"));
+                try
+                {
+                    using FileStream Writer = new(Temp, FileMode.Create);
+                    new HttpClient().GetAsync(URLSteamCMD).Result.Content.CopyTo(Writer, null, new CancellationTokenSource().Token);
+                    Process.Start(new ProcessStartInfo("tar", "-xf " + Temp) { WorkingDirectory = CWD })!.WaitForExit();
+                }
+                finally
+                {
+                    File.Delete(Temp);
+                }
             }
             else
                 throw new PlatformNotSupportedException();
@@ -431,7 +442,7 @@ public class KF2
     const string Extension = "log";
     const char Separator = '=';
     const int AppID = 232130;
-    static readonly string CWD = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), System.Reflection.Assembly.GetEntryAssembly()!.GetName().Name!);
+    static readonly string CWD = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Assembly.GetEntryAssembly()!.GetName().Name!);
     static readonly string URLSteamCMD = Environment.OSVersion.Platform switch
     {
         PlatformID.Win32NT => "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
