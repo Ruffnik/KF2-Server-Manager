@@ -61,7 +61,7 @@ public class TS
     static readonly string CWD = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), System.Reflection.Assembly.GetEntryAssembly()!.GetName().Name!);
     const string URL = "https://files.teamspeak-services.com/releases/server/";
     static readonly string SubDir = Path.Combine(CWD, "teamspeak3-server_win64");
-    static readonly string Logs = Path.Combine(CWD, "logs");
+    static readonly string Logs = Path.Combine(SubDir, "logs");
     static readonly string Changelog = Path.Combine(SubDir, "changelog.txt");
     static readonly string Binary = Path.Combine(SubDir, "ts3server.exe");
     const string Header = "## Server Release";

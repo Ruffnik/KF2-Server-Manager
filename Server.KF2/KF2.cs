@@ -149,8 +149,12 @@ public class KF2
                     }
                 Runner.Start();
                 while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
+                Console.WriteLine("Hacking INIs");
                 if (HackINIs())
+                {
+                    Console.WriteLine("INIs hacked");
                     Runner.Kill();
+                }
                 else
                     break;
                 Task.Run(() =>

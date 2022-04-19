@@ -15,6 +15,12 @@ public class Multi
 #endif
         while (true)
         {
+            Task.Run(() =>
+            {
+                TS.Clean();
+                TS.Update();
+                TS.Run();
+            });
             if (Farm.All(Server => !Server.Running))
                 KF2.Update();
             Update();
@@ -24,15 +30,10 @@ public class Multi
             Run();
             if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
                 Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
-            Task.Run(() =>
-            {
-                TS.Update();
-                TS.Run();
-            });
             Task.WaitAny(new[]
             {
                 Task.Delay(new TimeSpan(1,0,0)),
-                Task.Run(()=>Farm.ToList().AsParallel().ForAll(Server => Server.Wait()))
+                Task.Run(()=>Farm.AsParallel().ForAll(Server => Server.Wait()))
             });
         }
 #if !DEBUG
@@ -46,9 +47,9 @@ public class Multi
 #endif
     }
 
-    static void Run() => Farm.Where(Server => !Server.Running).ToList().AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
+    static void Run() => Farm.Where(Server => !Server.Running).AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
 
-    static void Kill() => Farm.Where(Server => Server.Running).ToList().AsParallel().ForAll(Server => Server.Kill());
+    static void Kill() => Farm.Where(Server => Server.Running).AsParallel().ForAll(Server => Server.Kill());
 
     static void Cleanup()
     {
