@@ -63,10 +63,12 @@ public class Multi
     {
         try
         { IDs = KF2.GetIDs(Settings.Default.ID); }
-        catch (NullReferenceException) { }
+        catch (NullReferenceException)
+        { }
         try
         { Maps.Item1 = Settings.Default.Maps.Cast<string>(); }
-        catch (ArgumentNullException) { }
+        catch (ArgumentNullException)
+        { }
         Maps = KF2.GetMaps(Maps.Item1, IDs);
         try
         {
@@ -91,7 +93,8 @@ public class Multi
         {
             Settings.Default.ID = Settings.Default.ID;
         }
-        catch (NullReferenceException) { }
+        catch (NullReferenceException)
+        { }
         Settings.Default.Save();
     }
 
@@ -122,7 +125,7 @@ public class Multi
     //Gonna need this one later for a possible editor
     //static void Serialize(string FileName, object Data)
     //{
-    //    if (string.Empty == Path.GetExtension(FileName))
+    //    if (string.IsNullOrEmpty(Path.GetExtension(FileName)))
     //        FileName = Path.ChangeExtension(FileName, XML);
     //    using var Stream = new FileStream(FileName, FileMode.Create);
     //    using var Writer = XmlWriter.Create(Stream);
@@ -150,7 +153,7 @@ public class Multi
             return $"<title>{Farm.Random().ServerName!}</title><link rel=\"shortcut icon\" href=\"{TheSource}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
         }
 
-        static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=# onclick=\"WebAdmin(" + Server.PortWebAdmin + ")\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>")) + "<footer>" + DateTime.Now.ToUniversalTime().ToString("u") + "</footer>";
+        static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=# onclick=\"WebAdmin(" + Server.PortWebAdmin + ")\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>")) + "<footer>" + DateTime.Now.ToString("o") + "</footer>";
     }
 
     static Multi()

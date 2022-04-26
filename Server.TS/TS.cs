@@ -15,10 +15,9 @@ public class TS
             if (double.Parse(Latest) > GetCurrent())
             {
                 try
-                {
-                    Runner.Kill();
-                }
-                catch (InvalidOperationException) { }
+                { Runner.Kill(); }
+                catch (InvalidOperationException)
+                { }
                 MemoryStream Stream = new();
                 new HttpClient().GetAsync(URL + Latest + "/teamspeak3-server_win64-" + Latest + ".zip").Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
                 var Temp = Path.GetTempFileName();
@@ -37,9 +36,7 @@ public class TS
                 Runner.Start();
         }
         catch (InvalidOperationException)
-        {
-            Runner.Start();
-        }
+        { Runner.Start(); }
     }
 
     public static void Clean()
@@ -49,7 +46,8 @@ public class TS
             {
                 try
                 { File.Delete(); }
-                catch (IOException) { }
+                catch (IOException)
+                { }
             }));
     }
 
