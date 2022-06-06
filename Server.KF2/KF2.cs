@@ -184,8 +184,10 @@ public class KF2
                     var Temp = Path.Combine(CWD, Path.ChangeExtension(SteamCMD, "tar.gz"));
                     try
                     {
-                        using FileStream Writer = new(Temp, FileMode.Create);
-                        new HttpClient().GetAsync(URL).Result.Content.CopyTo(Writer, null, new CancellationTokenSource().Token);
+                        {
+                            using FileStream Writer = new(Temp, FileMode.Create);
+                            new HttpClient().GetAsync(URL).Result.Content.CopyTo(Writer, null, new CancellationTokenSource().Token);
+                        }
                         Process.Start(new ProcessStartInfo("tar", "-xf " + Temp) { WorkingDirectory = CWD })!.WaitForExit();
                     }
                     finally
@@ -235,10 +237,10 @@ public class KF2
 
     bool HackINIs()
     {
-        Console.WriteLine($"{ConfigSubDir}\tReading");
+        Console.WriteLine($"{ConfigSubDir}>Reading");
         if (!TryReadINIs())
             return true;
-        Console.WriteLine($"{ConfigSubDir}\tRead");
+        Console.WriteLine($"{ConfigSubDir}>Read");
         HackedKFGame = (Maps is not null && (
             (AdminPassword is not null && TrySet(ContentKFGame!, "Engine.GameInfo", "bAdminCanPause", true)) |
             (ServerName is not null && TrySet(ContentKFGame!, "Engine.GameReplicationInfo", "ServerName", ServerName)) |
@@ -259,17 +261,20 @@ public class KF2
             );
         HackedKFWeb = Maps is not null && TrySet(ContentKFWeb!, "IpDrv.WebServer", "bEnabled", AdminPassword is not null);
         if (HackedKFGame)
+        {
             File.WriteAllLines(FileKFGame!, ContentKFGame!, Encoding.ASCII);
+            Console.WriteLine($"{ConfigSubDir}>Hacked KFGame.ini");
+        }
         if (HackedKFEngine)
+        {
             File.WriteAllLines(FileKFEngine!, ContentKFEngine!, Encoding.ASCII);
+            Console.WriteLine($"{ConfigSubDir}>Hacked KFEngine.ini");
+        }
         if (HackedKFWeb)
+        {
             File.WriteAllLines(FileKFWeb!, ContentKFWeb!, Encoding.ASCII);
-        if (HackedKFGame)
-            Console.WriteLine($"{ConfigSubDir}\tHackedKFGame");
-        if (HackedKFEngine)
-            Console.WriteLine($"{ConfigSubDir}\tHackedKFEngine");
-        if (HackedKFWeb)
-            Console.WriteLine($"{ConfigSubDir}\tHackedKFWeb");
+            Console.WriteLine($"{ConfigSubDir}>Hacked KFWeb.ini");
+        }
         return HackedKFGame || HackedKFEngine || HackedKFWeb;
     }
 
