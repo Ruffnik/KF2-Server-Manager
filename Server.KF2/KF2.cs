@@ -133,7 +133,7 @@ public class KF2
             ConfigSubDir ??= ServerName;
             Init(Maps, IDs);
             var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty) }{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty) }{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate") };
+            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty)}{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty)}{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate") };
             Log = Path.Combine(Logs, Log);
             HackINIs();
             while (true)
@@ -148,20 +148,19 @@ public class KF2
                         continue;
                     }
                 Runner.Start();
-                while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted))) { }
-                //Console.WriteLine("Hacking INIs");
-                if (HackINIs())
-                {
-                    //Console.WriteLine("INIs hacked");
-                    Runner.Kill();
-                }
-                else
-                    break;
                 Task.Run(() =>
                 {
                     Runner.WaitForExit();
                     File.Delete(Log);
                 });
+                while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted)))
+                {
+                    Thread.Sleep(new TimeSpan(0, 1, 0));
+                }
+                if (HackINIs())
+                    Runner.Kill();
+                else
+                    break;
             }
         }
         else
@@ -172,44 +171,45 @@ public class KF2
     static void RunSteamCMD(int AppID, string? UserName = null)
     {
         if (!File.Exists(SteamCMD))
+            switch (Environment.OSVersion.Platform)
+            {
+                case PlatformID.Win32NT:
+                    MemoryStream Stream = new();
+                    new HttpClient().GetAsync(URL).Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
+                    new ZipArchive(Stream).ExtractToDirectory(CWD);
+                    break;
+                case PlatformID.Unix:
+                    if (!Directory.Exists(CWD))
+                        Directory.CreateDirectory(CWD);
+                    var Temp = Path.Combine(CWD, Path.ChangeExtension(SteamCMD, "tar.gz"));
+                    try
+                    {
+                        using FileStream Writer = new(Temp, FileMode.Create);
+                        new HttpClient().GetAsync(URL).Result.Content.CopyTo(Writer, null, new CancellationTokenSource().Token);
+                        Process.Start(new ProcessStartInfo("tar", "-xf " + Temp) { WorkingDirectory = CWD })!.WaitForExit();
+                    }
+                    finally
+                    {
+                        File.Delete(Temp);
+                    }
+                    break;
+                default:
+                    throw new PlatformNotSupportedException();
+            }
+        switch (Environment.OSVersion.Platform)
         {
-            if (OperatingSystem.IsWindows())
-            {
-                MemoryStream Stream = new();
-                new HttpClient().GetAsync(URLSteamCMD).Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
-                new ZipArchive(Stream).ExtractToDirectory(CWD);
-            }
-            else if (OperatingSystem.IsLinux())
-            {
-                if (!Directory.Exists(CWD))
-                    Directory.CreateDirectory(CWD);
-                var Temp = Path.Combine(CWD, Path.ChangeExtension(SteamCMD, "tar.gz"));
-                try
-                {
-                    using FileStream Writer = new(Temp, FileMode.Create);
-                    new HttpClient().GetAsync(URLSteamCMD).Result.Content.CopyTo(Writer, null, new CancellationTokenSource().Token);
-                    Process.Start(new ProcessStartInfo("tar", "-xf " + Temp) { WorkingDirectory = CWD })!.WaitForExit();
-                }
-                finally
-                {
-                    File.Delete(Temp);
-                }
-            }
-            else
+            case PlatformID.Win32NT:
+                Process.Start(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit")!.WaitForExit();
+                break;
+            case PlatformID.Unix:
+                Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit") { UseShellExecute = true })!.WaitForExit();
+                break;
+            default:
                 throw new PlatformNotSupportedException();
         }
-        if (OperatingSystem.IsWindows())
-            Process.Start(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit")!.WaitForExit();
-        else if (OperatingSystem.IsLinux())
-        {
-            //Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit"),fileName="")!.WaitForExit();
-        }
-        else
-            throw new PlatformNotSupportedException();
     }
     #endregion
     #region KFServer
-
     void Init(IEnumerable<string>? Maps, IEnumerable<ulong>? IDs)
     {
         this.Maps = Maps?.ToArray();
@@ -235,8 +235,10 @@ public class KF2
 
     bool HackINIs()
     {
+        Console.WriteLine($"{ConfigSubDir}\tReading");
         if (!TryReadINIs())
             return true;
+        Console.WriteLine($"{ConfigSubDir}\tRead");
         HackedKFGame = (Maps is not null && (
             (AdminPassword is not null && TrySet(ContentKFGame!, "Engine.GameInfo", "bAdminCanPause", true)) |
             (ServerName is not null && TrySet(ContentKFGame!, "Engine.GameReplicationInfo", "ServerName", ServerName)) |
@@ -262,6 +264,12 @@ public class KF2
             File.WriteAllLines(FileKFEngine!, ContentKFEngine!, Encoding.ASCII);
         if (HackedKFWeb)
             File.WriteAllLines(FileKFWeb!, ContentKFWeb!, Encoding.ASCII);
+        if (HackedKFGame)
+            Console.WriteLine($"{ConfigSubDir}\tHackedKFGame");
+        if (HackedKFEngine)
+            Console.WriteLine($"{ConfigSubDir}\tHackedKFEngine");
+        if (HackedKFWeb)
+            Console.WriteLine($"{ConfigSubDir}\tHackedKFWeb");
         return HackedKFGame || HackedKFEngine || HackedKFWeb;
     }
 
@@ -432,8 +440,14 @@ public class KF2
     #region Constants   
     const int Base = 7777 + 1;
     const int AdminBase = 8080 + 1;
-    const string KFGame = "PCServer-KFGame.ini";
-    const string KFEngine = "PCServer-KFEngine.ini";
+    static readonly string Prefix = Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => "PC",
+        PlatformID.Unix => "Linux",
+        _ => throw new NotImplementedException()
+    };
+    static readonly string KFGame = Prefix + "Server-KFGame.ini";
+    static readonly string KFEngine = Prefix + "Server-KFEngine.ini";
     const string KFWeb = "KFWeb.ini";
     const string KFGameInfo = "KFGame.KFGameInfo";
     const string GameMapCycles = "GameMapCycles";
@@ -446,8 +460,13 @@ public class KF2
     const string Extension = "log";
     const char Separator = '=';
     const int AppID = 232130;
-    static readonly string CWD = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Assembly.GetEntryAssembly()!.GetName().Name!);
-    static readonly string URLSteamCMD = Environment.OSVersion.Platform switch
+    static readonly string CWD = Environment.OSVersion.Platform switch
+    {
+        PlatformID.Win32NT => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), Assembly.GetEntryAssembly()!.GetName().Name!),
+        PlatformID.Unix => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Steam"),
+        _ => throw new PlatformNotSupportedException()
+    };
+    static readonly string URL = Environment.OSVersion.Platform switch
     {
         PlatformID.Win32NT => "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
         PlatformID.Unix => "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz",
@@ -483,7 +502,7 @@ public class KF2
     //    PlatformID.Win32NT => @"steamapps\common\kf2server\KFGame\Config",
     //    _ => throw new PlatformNotSupportedException()
     //});
-    static readonly string Workshop = Path.Combine(CWD, "steamapps", "common", "kf2server", "Binaries", "Win64", "Win64", "steamapps", "workshop", "content", "232090");
+    static readonly string Workshop = Path.Combine(CWD, "steamapps", "common", "kf2server", "Binaries", "Win64", "steamapps", "workshop", "content", "232090");
     //static readonly string Workshop = Path.Combine(CWD, Environment.OSVersion.Platform switch
     //{
     //    PlatformID.Win32NT => @"steamapps\common\kf2server\Binaries\Win64\steamapps\workshop\content\232090",

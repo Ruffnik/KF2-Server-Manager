@@ -15,12 +15,13 @@ public class Multi
 #endif
         while (true)
         {
-            Task.Run(() =>
-            {
-                TS.Clean();
-                TS.Update();
-                TS.Run();
-            });
+            if (OperatingSystem.IsWindows())
+                Task.Run(() =>
+                {
+                    TS.Clean();
+                    TS.Update();
+                    TS.Run();
+                });
             if (Farm.All(Server => !Server.Running))
                 KF2.Update();
             Update();
@@ -28,8 +29,9 @@ public class Multi
                 Kill();
             Cleanup();
             Run();
-            if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
-                Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
+            if (OperatingSystem.IsWindows())
+                if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
+                    Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
             Task.WaitAny(new[]
             {
                 Task.Delay(new TimeSpan(1,0,0)),

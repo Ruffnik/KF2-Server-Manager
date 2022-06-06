@@ -9,22 +9,19 @@ public class TS
     #region Interface
     public static void Update()
     {
-        if (OperatingSystem.IsWindows())
+        var Latest = GetLatest();
+        if (double.Parse(Latest) > GetCurrent())
         {
-            var Latest = GetLatest();
-            if (double.Parse(Latest) > GetCurrent())
-            {
-                try
-                { Runner.Kill(); }
-                catch (InvalidOperationException)
-                { }
-                MemoryStream Stream = new();
-                new HttpClient().GetAsync(URL + Latest + "/teamspeak3-server_win64-" + Latest + ".zip").Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
-                var Temp = Path.GetTempFileName();
-                File.Delete(Temp);
-                new ZipArchive(Stream).ExtractToDirectory(Temp);
-                FileSystem.MoveDirectory(Temp, CWD, true);
-            }
+            try
+            { Runner.Kill(); }
+            catch (InvalidOperationException)
+            { }
+            MemoryStream Stream = new();
+            new HttpClient().GetAsync(URL + Latest + "/teamspeak3-server_win64-" + Latest + ".zip").Result.Content.CopyTo(Stream, null, new CancellationTokenSource().Token);
+            var Temp = Path.GetTempFileName();
+            File.Delete(Temp);
+            new ZipArchive(Stream).ExtractToDirectory(Temp);
+            FileSystem.MoveDirectory(Temp, CWD, true);
         }
     }
 
