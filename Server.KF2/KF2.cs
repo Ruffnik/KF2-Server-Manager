@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text;
 
@@ -138,15 +139,6 @@ public class KF2
             HackINIs();
             while (true)
             {
-                if (File.Exists(Log))
-                    try
-                    {
-                        File.Delete(Log);
-                    }
-                    catch (IOException)
-                    {
-                        continue;
-                    }
                 Runner.Start();
                 Task.Run(() =>
                 {
@@ -198,17 +190,7 @@ public class KF2
                 default:
                     throw new PlatformNotSupportedException();
             }
-        switch (Environment.OSVersion.Platform)
-        {
-            case PlatformID.Win32NT:
-                Process.Start(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit")!.WaitForExit();
-                break;
-            case PlatformID.Unix:
-                Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit") { UseShellExecute = true })!.WaitForExit();
-                break;
-            default:
-                throw new PlatformNotSupportedException();
-        }
+        Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit") { UseShellExecute = !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) })!.WaitForExit();
     }
     #endregion
     #region KFServer
