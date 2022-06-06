@@ -132,9 +132,11 @@ public class KF2
         if (!Running)
         {
             ConfigSubDir ??= ServerName;
+            if (OperatingSystem.IsLinux())
+                ConfigSubDir = ConfigSubDir?.Replace(" ", "%20");
             Init(Maps, IDs);
             var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(ConfigSubDir is not null ? "?ConfigSubDir=\"" + ConfigSubDir + "\"" : string.Empty)}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty)}{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty)}{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)} -log={Log} -autoupdate") };
+            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty)}{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty)}{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)}{(ConfigSubDir is not null ? "?ConfigSubDir=" + Escape(ConfigSubDir) : string.Empty)} -log={Log} -autoupdate") };
             Log = Path.Combine(Logs, Log);
             HackINIs();
             while (true)
@@ -157,6 +159,13 @@ public class KF2
         }
         else
             throw new InvalidOperationException();
+
+        static string Escape(string Path) => Environment.OSVersion.Platform switch
+        {
+            PlatformID.Win32NT => '"' + Path + '"',
+            PlatformID.Unix => Path,
+            _ => throw new PlatformNotSupportedException()
+        };
     }
     #endregion
     #region SteamCMD
@@ -190,7 +199,7 @@ public class KF2
                 default:
                     throw new PlatformNotSupportedException();
             }
-        Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit") { UseShellExecute = !RuntimeInformation.IsOSPlatform(OSPlatform.Windows) })!.WaitForExit();
+        Process.Start(new ProcessStartInfo(SteamCMD, $"+login {UserName ?? "anonymous"} +app_update {AppID} +quit") { UseShellExecute = OperatingSystem.IsLinux() })!.WaitForExit();
     }
     #endregion
     #region KFServer
