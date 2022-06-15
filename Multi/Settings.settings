@@ -45,6 +45,7 @@
   &lt;string&gt;KF-Moonbase&lt;/string&gt;
   &lt;string&gt;KF-Netherhold&lt;/string&gt;
   &lt;string&gt;KF-CarillonHamlet&lt;/string&gt;
+  &lt;string&gt;KF-Rig&lt;/string&gt;
 &lt;/ArrayOfString&gt;</Value>
     </Setting>
     <Setting Name="IDs" Type="System.Collections.Specialized.StringCollection" Scope="User">

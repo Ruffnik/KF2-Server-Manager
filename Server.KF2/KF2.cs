@@ -148,9 +148,7 @@ public class KF2
                     File.Delete(Log);
                 });
                 while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted)))
-                {
                     Thread.Sleep(new TimeSpan(0, 1, 0));
-                }
                 if (HackINIs())
                     Runner.Kill();
                 else
@@ -228,10 +226,8 @@ public class KF2
 
     bool HackINIs()
     {
-        Console.WriteLine($"{ConfigSubDir}>Reading");
         if (!TryReadINIs())
             return true;
-        Console.WriteLine($"{ConfigSubDir}>Read");
         HackedKFGame = (Maps is not null && (
             (AdminPassword is not null && TrySet(ContentKFGame!, "Engine.GameInfo", "bAdminCanPause", true)) |
             (ServerName is not null && TrySet(ContentKFGame!, "Engine.GameReplicationInfo", "ServerName", ServerName)) |
@@ -252,20 +248,11 @@ public class KF2
             );
         HackedKFWeb = Maps is not null && TrySet(ContentKFWeb!, "IpDrv.WebServer", "bEnabled", AdminPassword is not null);
         if (HackedKFGame)
-        {
             File.WriteAllLines(FileKFGame!, ContentKFGame!, Encoding.ASCII);
-            Console.WriteLine($"{ConfigSubDir}>Hacked KFGame.ini");
-        }
         if (HackedKFEngine)
-        {
             File.WriteAllLines(FileKFEngine!, ContentKFEngine!, Encoding.ASCII);
-            Console.WriteLine($"{ConfigSubDir}>Hacked KFEngine.ini");
-        }
         if (HackedKFWeb)
-        {
             File.WriteAllLines(FileKFWeb!, ContentKFWeb!, Encoding.ASCII);
-            Console.WriteLine($"{ConfigSubDir}>Hacked KFWeb.ini");
-        }
         return HackedKFGame || HackedKFEngine || HackedKFWeb;
     }
 
