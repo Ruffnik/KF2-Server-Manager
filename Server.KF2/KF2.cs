@@ -145,7 +145,9 @@ public class KF2
                 Task.Run(() =>
                 {
                     Runner.WaitForExit();
-                    File.Delete(Log);
+                    try
+                    { File.Delete(Log); }
+                    catch (IOException) { }
                 });
                 while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted)))
                     Thread.Sleep(new TimeSpan(0, 1, 0));
