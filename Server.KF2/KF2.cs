@@ -132,8 +132,6 @@ public class KF2
         if (!Running)
         {
             ConfigSubDir ??= ServerName;
-            if (OperatingSystem.IsLinux())
-                ConfigSubDir = ConfigSubDir?.Replace(" ", "%20");
             Init(Maps, IDs);
             var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
             Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty)}{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty)}{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)}{(ConfigSubDir is not null ? "?ConfigSubDir=" + Escape(ConfigSubDir) : string.Empty)} -log={Log} -autoupdate") };
@@ -146,8 +144,11 @@ public class KF2
                 {
                     Runner.WaitForExit();
                     try
-                    { File.Delete(Log); }
-                    catch (IOException) { }
+                    {
+                        File.Delete(Log);
+                    }
+                    catch (IOException)
+                    { }
                 });
                 while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted)))
                     Thread.Sleep(new TimeSpan(0, 1, 0));
@@ -163,7 +164,7 @@ public class KF2
         static string Escape(string Path) => Environment.OSVersion.Platform switch
         {
             PlatformID.Win32NT => '"' + Path + '"',
-            PlatformID.Unix => Path,
+            PlatformID.Unix => Path.Replace(" ", "%20"),
             _ => throw new PlatformNotSupportedException()
         };
     }
@@ -185,10 +186,8 @@ public class KF2
                     var Temp = Path.Combine(CWD, Path.ChangeExtension(SteamCMD, "tar.gz"));
                     try
                     {
-                        {
-                            using FileStream Writer = new(Temp, FileMode.Create);
+                        using (FileStream Writer = new(Temp, FileMode.Create))
                             new HttpClient().GetAsync(URL).Result.Content.CopyTo(Writer, null, new CancellationTokenSource().Token);
-                        }
                         Process.Start(new ProcessStartInfo("tar", "-xf " + Temp) { WorkingDirectory = CWD })!.WaitForExit();
                     }
                     finally
@@ -535,9 +534,9 @@ public static class ExtensionMethods
 {
     public static T Random<T>(this IEnumerable<T> Collection) => Collection.ElementAt(PRNG.Next(0, Collection.Count()));
 
-    public static IEnumerable<T> Order<T>(this IEnumerable<T> Collection) => Collection.OrderBy(Item => Item);
+    public static IEnumerable<T> Order<T>(this IEnumerable<T> Collection) => Collection.OrderBy(_ => _);
 
-    internal static IEnumerable<T> Shuffle<T>(this IEnumerable<T> Collection) => Collection.OrderBy(Item => PRNG.Next());
+    internal static IEnumerable<T> Shuffle<T>(this IEnumerable<T> Collection) => Collection.OrderBy(_ => PRNG.Next());
 
     internal static string GetDirectoryName(this string Directory) => Path.TrimEndingDirectorySeparator(Directory).Split(Path.DirectorySeparatorChar)[^1];
 

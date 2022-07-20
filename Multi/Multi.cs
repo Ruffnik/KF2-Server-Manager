@@ -27,7 +27,7 @@ public class Multi
             Update();
             if (NewIDs || NewMaps)
                 Kill();
-            Cleanup();
+            KF2.Clean();
             Run();
             if (OperatingSystem.IsWindows())
                 if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
@@ -52,14 +52,6 @@ public class Multi
     static void Run() => Farm.Where(Server => !Server.Running).AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
 
     static void Kill() => Farm.Where(Server => Server.Running).AsParallel().ForAll(Server => Server.Kill());
-
-    static void Cleanup()
-    {
-        KF2.Clean();
-        //Actually that's client stuff
-        //if (IDs is not null)
-        //    KF2.Clean(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "My Games", "KillingFloor2", "KFGame", "Cache"), IDs);
-    }
 
     static void Update()
     {
@@ -136,8 +128,6 @@ public class Multi
 
     static T? Deserialize<T>(string FileName)
     {
-        if (!File.Exists(FileName))
-            FileName = Path.ChangeExtension(FileName, XML);
         var Stream = new FileStream(FileName, FileMode.Open);
         var Reader = XmlReader.Create(Stream);
         return (T?)new DataContractSerializer(typeof(T)).ReadObject(Reader);
@@ -151,7 +141,7 @@ public class Multi
 
         static string GetHead()
         {
-            var TheSource = $"http://{IP}:8081/images/";
+            var TheSource = $"http://{IP}:{Farm.Where(_ => _.PortWebAdmin is not null).Random().PortWebAdmin}/images/";
             return $"<title>{Farm.Random().ServerName!}</title><link rel=\"shortcut icon\" href=\"{TheSource}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
         }
 
