@@ -13,15 +13,22 @@ public class Multi
         try
         {
 #endif
+        try { Settings.Default.ID = Settings.Default.ID; } catch (NullReferenceException) { }
+        try { Settings.Default.TeamSpeak = Settings.Default.TeamSpeak; } catch (NullReferenceException) { }
+        try { Settings.Default.HTML = Settings.Default.HTML; } catch (NullReferenceException) { }
+        Settings.Default.Save();
         while (true)
         {
-            if (OperatingSystem.IsWindows())
-                Task.Run(() =>
-                {
-                    TS.Clean();
-                    TS.Update();
-                    TS.Run();
-                });
+            if (Settings.Default.TeamSpeak)
+                if (OperatingSystem.IsWindows())
+                    Task.Run(() =>
+                    {
+                        TS.Clean();
+                        TS.Update();
+                        TS.Run();
+                    });
+                else
+                    throw new NotImplementedException();
             if (Farm.All(Server => !Server.Running))
                 KF2.Update();
             Update();
@@ -56,11 +63,15 @@ public class Multi
     static void Update()
     {
         try
-        { IDs = KF2.GetIDs(Settings.Default.ID); }
+        {
+            IDs = KF2.GetIDs(Settings.Default.ID);
+        }
         catch (NullReferenceException)
         { }
         try
-        { Maps.Item1 = Settings.Default.Maps.Cast<string>(); }
+        {
+            Maps.Item1 = Settings.Default.Maps.Cast<string>();
+        }
         catch (ArgumentNullException)
         { }
         Maps = KF2.GetMaps(Maps.Item1, IDs);
@@ -69,13 +80,17 @@ public class Multi
             NewIDs = !IDs?.SequenceEqual(Decode(Settings.Default.IDs)) ?? false;
         }
         catch (ArgumentNullException)
-        { NewIDs = true; }
+        {
+            NewIDs = true;
+        }
         try
         {
             NewMaps = !Maps.Item1!.SequenceEqual(Settings.Default.Maps.Cast<string>());
         }
         catch (ArgumentNullException)
-        { NewMaps = true; }
+        {
+            NewMaps = true;
+        }
         if (NewMaps)
         {
             Settings.Default.Maps = Encode(Maps.Item1!);
@@ -83,18 +98,12 @@ public class Multi
         }
         if (NewIDs)
             Settings.Default.IDs = Encode(IDs!);
-        try
-        {
-            Settings.Default.ID = Settings.Default.ID;
-        }
-        catch (NullReferenceException)
-        { }
         Settings.Default.Save();
     }
 
-    static IEnumerable<ulong> Decode(StringCollection Collection) => Collection.Cast<string>().Select(Item => ulong.Parse(Item));
+    static IEnumerable<ulong> Decode(StringCollection Collection) => Collection.Cast<string>().Select(_ => ulong.Parse(_));
 
-    static StringCollection Encode(IEnumerable<ulong> Collection) => Encode(Collection.Select(Item => Item.ToString()));
+    static StringCollection Encode(IEnumerable<ulong> Collection) => Encode(Collection.Select(_ => _.ToString()));
 
     static StringCollection Encode(IEnumerable<string> Collection)
     {

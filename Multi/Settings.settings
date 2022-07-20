@@ -54,5 +54,8 @@
     <Setting Name="HTML" Type="System.String" Scope="User">
       <Value Profile="(Default)">C:\inetpub\wwwroot\Default.htm</Value>
     </Setting>
+    <Setting Name="TeamSpeak" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

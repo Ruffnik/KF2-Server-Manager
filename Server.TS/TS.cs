@@ -4,7 +4,7 @@ using System.IO.Compression;
 
 namespace SMan;
 
-public class TS
+public static class TS
 {
     #region Interface
     public static void Update()
@@ -13,7 +13,9 @@ public class TS
         if (double.Parse(Latest) > GetCurrent())
         {
             try
-            { Runner.Kill(); }
+            {
+                Runner.Kill();
+            }
             catch (InvalidOperationException)
             { }
             MemoryStream Stream = new();
@@ -33,7 +35,9 @@ public class TS
                 Runner.Start();
         }
         catch (InvalidOperationException)
-        { Runner.Start(); }
+        {
+            Runner.Start();
+        }
     }
 
     public static void Clean()
@@ -42,7 +46,9 @@ public class TS
             Task.Run(() => new DirectoryInfo(Logs).GetFiles().ToList().ForEach(File =>
             {
                 try
-                { File.Delete(); }
+                {
+                    File.Delete();
+                }
                 catch (IOException)
                 { }
             }));
