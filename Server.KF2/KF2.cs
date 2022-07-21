@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.IO.Compression;
+using System.Net;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text;
-using System.Net;
 
 namespace SMan;
 
@@ -104,8 +105,11 @@ public class KF2
                 Task.Run(() => new DirectoryInfo(Folder).GetFiles().ToList().ForEach(File =>
                 {
                     try
-                    { File.Delete(); }
-                    catch (IOException) { }
+                    {
+                        File.Delete();
+                    }
+                    catch (IOException)
+                    { }
                 }));
         }
     }
@@ -124,6 +128,7 @@ public class KF2
 
     public static void Terminate() => Process.GetProcessesByName(Path.GetFileNameWithoutExtension(KFServer)).ToList().ForEach(_ => _.Kill());
 
+    [SuppressMessage("Usage", "CA2211", Justification = "Low impact")]
     public static IPAddress? IP;
 
     public bool Running => !Runner?.HasExited ?? false;
@@ -224,6 +229,11 @@ public class KF2
         Sanitize(ref WebsiteLink);
         if (!ServerMOTD?.Any() ?? false)
             ServerMOTD = null;
+        if (Games.WeeklySurvival == Game)
+        {
+            GameLength = null;
+            Difficulty = null;
+        }
 
         static void Sanitize(ref string? Setting)
         {
@@ -242,8 +252,8 @@ public class KF2
             (BannerLink is not null && TrySet(ContentKFGame!, GameInfo, "BannerLink", BannerLink)) |
             (ServerMOTD is not null && TrySet(ContentKFGame!, GameInfo, "ServerMOTD", string.Join("\\n", ServerMOTD))) |
             (WebsiteLink is not null && TrySet(ContentKFGame!, GameInfo, "WebsiteLink", WebsiteLink)) |
-            (GameLength is not null && TrySet(ContentKFGame!, EngineInfo, "GameLength", (int)GameLength)) |
-            //(Difficulty is not null && TrySet(ContentKFGame!, GameInfo, "Difficulty", (float)Difficulty)) |
+            (GameLength is not null && TrySet(ContentKFGame!, GameInfo, "GameLength", (int)GameLength)) |
+            (Difficulty is not null && TrySet(ContentKFGame!, EngineInfo, "GameDifficulty", (double)Difficulty)) |
             TrySet(ContentKFGame!, GameInfo, "ClanMotto", string.Empty) |
             TrySet(ContentKFGame!, GameInfo, "bDisableTeamCollision", true) |
             TrySet(ContentKFGame!, GameInfo, MapCycles, Encode(Maps)))) |
@@ -291,9 +301,18 @@ public class KF2
             return false;
     }
 
-    static bool TrySet(string[] Data, string Section, string Key, int Value) => TrySet(Data, Section, Key, $"{Value}");
+    static bool TrySet(string[] Data, string Section, string Key, double Value)
+    {
+        if (Value != double.Parse(GetValue(Data, Section, Key), CultureInfo.InvariantCulture))
+        {
+            SetValue(Data, Section, Key, $"{Value}");
+            return true;
+        }
+        else
+            return false;
+    }
 
-    static bool TrySet(string[] Data, string Section, string Key, float Value) => TrySet(Data, Section, Key, $"{Value:#.#}");
+    static bool TrySet(string[] Data, string Section, string Key, int Value) => TrySet(Data, Section, Key, $"{Value}");
 
     static bool TrySet(ref string[] Data, string Section, string Key, IEnumerable<string> Values)
     {

@@ -1,6 +1,6 @@
-﻿using System.Net;
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.IO.Compression;
+using System.Net;
 using System.Runtime.Serialization;
 using System.Xml;
 
@@ -61,7 +61,7 @@ public class Multi
 #endif
     }
 
-    static void Run() => Farm.Where(Server => !Server.Running).ToList().ForEach/*AsParallel().ForAll*/(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
+    static void Run() => Farm.Where(Server => !Server.Running).AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
 
     static void Kill() => Farm.Where(Server => Server.Running).AsParallel().ForAll(Server => Server.Kill());
 
