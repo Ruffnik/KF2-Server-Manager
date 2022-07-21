@@ -1,4 +1,5 @@
-﻿using System.Collections.Specialized;
+﻿using System.Net;
+using System.Collections.Specialized;
 using System.IO.Compression;
 using System.Runtime.Serialization;
 using System.Xml;
@@ -13,10 +14,13 @@ public class Multi
         try
         {
 #endif
-        try { Settings.Default.ID = Settings.Default.ID; } catch (NullReferenceException) { }
+        try { Settings.Default.Collection = Settings.Default.Collection; } catch (NullReferenceException) { }
         try { Settings.Default.TeamSpeak = Settings.Default.TeamSpeak; } catch (NullReferenceException) { }
         try { Settings.Default.HTML = Settings.Default.HTML; } catch (NullReferenceException) { }
         Settings.Default.Save();
+        KF2.Terminate();
+        KF2.Clean();
+        TS.Clean();
         while (true)
         {
             if (Settings.Default.TeamSpeak)
@@ -36,6 +40,7 @@ public class Multi
                 Kill();
             KF2.Clean();
             Run();
+            IP = KF2.IP;
             if (OperatingSystem.IsWindows())
                 if (Directory.Exists(Path.GetDirectoryName(Settings.Default.HTML)))
                     Task.Run(() => File.WriteAllText(Settings.Default.HTML, GetHTML()));
@@ -56,7 +61,7 @@ public class Multi
 #endif
     }
 
-    static void Run() => Farm.Where(Server => !Server.Running).AsParallel().ForAll(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
+    static void Run() => Farm.Where(Server => !Server.Running).ToList().ForEach/*AsParallel().ForAll*/(Server => Server.Run(Maps.Item1!.Concat(Maps.Item2!), IDs));
 
     static void Kill() => Farm.Where(Server => Server.Running).AsParallel().ForAll(Server => Server.Kill());
 
@@ -64,7 +69,7 @@ public class Multi
     {
         try
         {
-            IDs = KF2.GetIDs(Settings.Default.ID);
+            IDs = KF2.GetIDs(Settings.Default.Collection);
         }
         catch (NullReferenceException)
         { }
@@ -144,14 +149,12 @@ public class Multi
 
     static string GetHTML()
     {
-        IP = new string(new HttpClient().GetAsync("http://www.what-is-my-ipv4.com").Result.Content.ReadAsStringAsync().Result.ToCharArray().Where(Char => !char.IsWhiteSpace(Char)).ToArray()).Split("<strongclass='ip'>")[1].Split("</strong>")[0];
-
         return $"<!doctype html><head>{GetHead()}</head><body>{GetBody()}</body></html>";
 
         static string GetHead()
         {
-            var TheSource = $"http://{IP}:{Farm.Where(_ => _.PortWebAdmin is not null).Random().PortWebAdmin}/images/";
-            return $"<title>{Farm.Random().ServerName!}</title><link rel=\"shortcut icon\" href=\"{TheSource}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{TheSource}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
+            var Host = $"http://{IP}:{Farm.Where(_ => _.PortWebAdmin is not null).Random().PortWebAdmin}/images/";
+            return $"<title>{string.Join('|', Farm.Distinct().Select(_ => _.ServerName!))}</title><link rel=\"shortcut icon\" href=\"{Host}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{Host}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{Host}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
         }
 
         static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=# onclick=\"WebAdmin(" + Server.PortWebAdmin + ")\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>")) + "<footer>" + DateTime.Now.ToString("o") + "</footer>";
@@ -180,5 +183,5 @@ public class Multi
     const string ZIP = "zip";
     static IEnumerable<KF2> Farm = Enumerable.Empty<KF2>();
     static bool NewIDs, NewMaps;
-    static string IP = string.Empty;
+    static IPAddress? IP;
 }

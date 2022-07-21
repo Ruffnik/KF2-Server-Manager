@@ -26,12 +26,12 @@ namespace SMan {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1802174804")]
-        public ulong ID {
+        public ulong Collection {
             get {
-                return ((ulong)(this["ID"]));
+                return ((ulong)(this["Collection"]));
             }
             set {
-                this["ID"] = value;
+                this["Collection"] = value;
             }
         }
         

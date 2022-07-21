@@ -2,7 +2,7 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SMan" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="ID" Type="System.UInt64" Scope="User">
+    <Setting Name="Collection" Type="System.UInt64" Scope="User">
       <Value Profile="(Default)">1802174804</Value>
     </Setting>
     <Setting Name="Maps" Type="System.Collections.Specialized.StringCollection" Scope="User">

@@ -69,5 +69,7 @@ public static class TS
     #endregion
     #region Plumbing
     static readonly Process Runner = new() { StartInfo = new(Binary) { WorkingDirectory = SubDir } };
+
+    static TS() => Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Binary)).ToList().ForEach(_ => _.Kill());
     #endregion
 }

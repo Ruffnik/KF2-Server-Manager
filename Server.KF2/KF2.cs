@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Net;
 
 namespace SMan;
 
@@ -15,8 +16,8 @@ public class KF2
     public string? ServerName, GamePassword, AdminPassword, BannerLink, WebsiteLink, ConfigSubDir;
     public IEnumerable<string>? ServerMOTD;
     public Games? Game;
-    public Difficultues? Difficulty;
-    public GameLengths? GameLength;
+    public Difficulties? Difficulty;
+    public Lengths? GameLength;
     #endregion
     #region Interface
     //https://wiki.killingfloor2.com/index.php?title=Dedicated_Server_(Killing_Floor_2)
@@ -79,7 +80,7 @@ public class KF2
                 break;
             }
         }
-        var Missing = GetValue(Path.Combine(Config, KFGame), KFGameInfo, GameMapCycles).Split('"')[1..^1].Where(Map => ',' != Map[0]).Where(Map => !Stock.Contains(Map));
+        var Missing = GetValue(Path.Combine(Config, KFGame), GameInfo, MapCycles).Split('"')[1..^1].Where(Map => ',' != Map[0]).Where(Map => !Stock.Contains(Map));
         if (Missing.Any())
             Stock = Stock.Concat(Missing.Shuffle()).ToList();
         return (Stock, Directory.EnumerateDirectories(Cache).OrderBy(ID => ulong.Parse(ID.GetDirectoryName())).Select(ID => Directory.EnumerateFiles(ID, "*.kfm", SearchOption.AllDirectories).Last()).Select(ID => Path.GetFileNameWithoutExtension(ID)));
@@ -121,6 +122,10 @@ public class KF2
             );
     }
 
+    public static void Terminate() => Process.GetProcessesByName(Path.GetFileNameWithoutExtension(KFServer)).ToList().ForEach(_ => _.Kill());
+
+    public static IPAddress? IP;
+
     public bool Running => !Runner?.HasExited ?? false;
 
     public void Wait() => Runner!.WaitForExit();
@@ -134,7 +139,7 @@ public class KF2
             ConfigSubDir ??= ServerName;
             Init(Maps, IDs);
             var Log = Path.ChangeExtension(Path.GetRandomFileName(), Extension);
-            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty)}{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty)}{(GameLength is not null ? "?GameLength=" + (int)GameLength : string.Empty)}{(Difficulty is not null ? "?Difficulty=" + (int)Difficulty : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)}{(ConfigSubDir is not null ? "?ConfigSubDir=" + Escape(ConfigSubDir) : string.Empty)} -log={Log} -autoupdate") };
+            Runner = new() { StartInfo = new(KFServer, Maps is null ? $"-log={Log}" : $"{Map ?? Maps!.Random()}{(Game is not null && Games.Survival != Game ? "?Game=" + Game?.Decode() : string.Empty)}{(AdminPassword is not null ? "?AdminPassword=" + AdminPassword : string.Empty)}{(Offset is not null ? "?Port=" + (Base + Offset) : string.Empty)}{(OffsetWebAdmin is not null ? "?WebAdminPort=" + (AdminBase + OffsetWebAdmin) : string.Empty)}{(ConfigSubDir is not null ? "?ConfigSubDir=" + Escape(ConfigSubDir) : string.Empty)} -log={Log} -autoupdate") };
             Log = Path.Combine(Logs, Log);
             HackINIs();
             while (true)
@@ -150,8 +155,10 @@ public class KF2
                     catch (IOException)
                     { }
                 });
-                while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && ReadAllText(Log).Contains(InitCompleted)))
+                string[] Lines;
+                while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && (Lines = ReadAllLines(Log)).Any(_ => _.Contains(InitCompleted))))
                     Thread.Sleep(new TimeSpan(0, 1, 0));
+                IP = IPAddress.Parse(Lines.Where(_ => _.Contains(InitCompleted)).First().Split(InitCompleted)[1].Trim().Split(' ')[0]);
                 if (HackINIs())
                     Runner.Kill();
                 else
@@ -230,17 +237,19 @@ public class KF2
         if (!TryReadINIs())
             return true;
         HackedKFGame = (Maps is not null && (
-            (AdminPassword is not null && TrySet(ContentKFGame!, "Engine.GameInfo", "bAdminCanPause", true)) |
+            (AdminPassword is not null && TrySet(ContentKFGame!, EngineInfo, "bAdminCanPause", true)) |
             (ServerName is not null && TrySet(ContentKFGame!, "Engine.GameReplicationInfo", "ServerName", ServerName)) |
-            (BannerLink is not null && TrySet(ContentKFGame!, KFGameInfo, "BannerLink", BannerLink)) |
-            (ServerMOTD is not null && TrySet(ContentKFGame!, KFGameInfo, "ServerMOTD", string.Join("\\n", ServerMOTD))) |
-            (WebsiteLink is not null && TrySet(ContentKFGame!, KFGameInfo, "WebsiteLink", WebsiteLink)) |
-            TrySet(ContentKFGame!, KFGameInfo, "ClanMotto", string.Empty) |
-            TrySet(ContentKFGame!, KFGameInfo, "bDisableTeamCollision", true) |
-            TrySet(ContentKFGame!, KFGameInfo, GameMapCycles, Encode(Maps)))) |
+            (BannerLink is not null && TrySet(ContentKFGame!, GameInfo, "BannerLink", BannerLink)) |
+            (ServerMOTD is not null && TrySet(ContentKFGame!, GameInfo, "ServerMOTD", string.Join("\\n", ServerMOTD))) |
+            (WebsiteLink is not null && TrySet(ContentKFGame!, GameInfo, "WebsiteLink", WebsiteLink)) |
+            (GameLength is not null && TrySet(ContentKFGame!, EngineInfo, "GameLength", (int)GameLength)) |
+            //(Difficulty is not null && TrySet(ContentKFGame!, GameInfo, "Difficulty", (float)Difficulty)) |
+            TrySet(ContentKFGame!, GameInfo, "ClanMotto", string.Empty) |
+            TrySet(ContentKFGame!, GameInfo, "bDisableTeamCollision", true) |
+            TrySet(ContentKFGame!, GameInfo, MapCycles, Encode(Maps)))) |
             TrySet(ContentKFGame!, "Engine.AccessControl", "GamePassword", GamePassword ?? string.Empty);
         HackedKFEngine =
-            (Maps is not null && UsedForTakeover is not null && TrySet(ContentKFEngine!, "Engine.GameEngine", "bUsedForTakeover", UsedForTakeover!.Value)) |
+            ((Maps is null && TrySet(ContentKFEngine!, "Engine.GameEngine", "bUsedForTakeover", false)) || (Maps is not null && UsedForTakeover is not null && TrySet(ContentKFEngine!, "Engine.GameEngine", "bUsedForTakeover", UsedForTakeover!.Value))) |
             (IDs is not null ?
             (TryPrepend(ref ContentKFEngine!, TcpNetDriver, DownloadManagers, SteamWorkshopDownload) |
             TrySet(ref ContentKFEngine!, KFWorkshopSteamworks, ServerSubscribedWorkshopItems, IDs.Select(ID => ID.ToString()))) :
@@ -282,16 +291,9 @@ public class KF2
             return false;
     }
 
-    private static bool TryPrepend(ref string[] Data, string Section, string Key, string Value)
-    {
-        var Index = FindValues(Data, Section, Key)[0];
-        if (Value != GetValue(Data, Index))
-        {
-            Data = Data[0..Index].Append(Key + Separator + Value).Concat(Data[Index..]).ToArray();
-            return true;
-        }
-        return false;
-    }
+    static bool TrySet(string[] Data, string Section, string Key, int Value) => TrySet(Data, Section, Key, $"{Value}");
+
+    static bool TrySet(string[] Data, string Section, string Key, float Value) => TrySet(Data, Section, Key, $"{Value:#.#}");
 
     static bool TrySet(ref string[] Data, string Section, string Key, IEnumerable<string> Values)
     {
@@ -325,6 +327,17 @@ public class KF2
             foreach (var Value in Values.Reverse())
                 Data = Data[0..(Index + 1)].Append(Key + Separator + Value).Concat(Data[(Index + 1)..]).ToArray();
         }
+    }
+
+    private static bool TryPrepend(ref string[] Data, string Section, string Key, string Value)
+    {
+        var Index = FindValues(Data, Section, Key)[0];
+        if (Value != GetValue(Data, Index))
+        {
+            Data = Data[0..Index].Append(Key + Separator + Value).Concat(Data[Index..]).ToArray();
+            return true;
+        }
+        return false;
     }
 
     static bool TryRemove(ref string[] Data, string Section)
@@ -397,10 +410,10 @@ public class KF2
     static string GetValue(string Config, string Section, string Key) => GetValue(File.ReadAllLines(Config), Section, Key);
     #endregion
     #region File system
-    static string ReadAllText(string Path)
+    static string[] ReadAllLines(string Path)
     {
         using FileStream Stream = new(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        return new StreamReader(Stream).ReadToEnd();
+        return new StreamReader(Stream).ReadToEnd().Split(Environment.NewLine);
     }
 
     static bool TryRead(string Path, ref string[]? Collection)
@@ -421,7 +434,7 @@ public class KF2
     IEnumerable<ulong>? IDs;
     Process? Runner;
     #endregion
-    #region Constants   
+    #region Constants
     const int Base = 7777 + 1;
     const int AdminBase = 8080 + 1;
     static readonly string Prefix = Environment.OSVersion.Platform switch
@@ -433,14 +446,15 @@ public class KF2
     static readonly string KFGame = Prefix + "Server-KFGame.ini";
     static readonly string KFEngine = Prefix + "Server-KFEngine.ini";
     const string KFWeb = "KFWeb.ini";
-    const string KFGameInfo = "KFGame.KFGameInfo";
-    const string GameMapCycles = "GameMapCycles";
+    const string GameInfo = "KFGame.KFGameInfo";
+    const string EngineInfo = "Engine.GameInfo";
+    const string MapCycles = "GameMapCycles";
     const string TcpNetDriver = "IpDrv.TcpNetDriver";
     const string DownloadManagers = "DownloadManagers";
     const string SteamWorkshopDownload = "OnlineSubsystemSteamworks.SteamWorkshopDownload";
     const string KFWorkshopSteamworks = "OnlineSubsystemSteamworks.KFWorkshopSteamworks";
     const string ServerSubscribedWorkshopItems = "ServerSubscribedWorkshopItems";
-    const string InitCompleted = "Initializing Game Engine Completed";
+    const string InitCompleted = "Public IP";
     const string Extension = "log";
     const char Separator = '=';
     const int AppID = 232130;
@@ -510,18 +524,14 @@ public class KF2
         [EnumMember(Value = "KFGameContent.KFGameInfo_Endless")]
         Endless = 3,
     };
-    public enum Difficultues
+    public enum Difficulties
     {
-        [EnumMember(Value = "Normal")]
         Normal = 0,
-        [EnumMember(Value = "Hard")]
         Hard = 1,
-        [EnumMember(Value = "Suicidal")]
         Suicidal = 2,
-        [EnumMember(Value = "Hell on Earth")]
         HellOnEarth = 3,
     }
-    public enum GameLengths
+    public enum Lengths
     {
         Short = 0,
         Normal = 1,
