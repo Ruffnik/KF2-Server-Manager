@@ -154,7 +154,7 @@ public class Multi
         static string GetHead()
         {
             var Host = $"http://{IP}:{Farm.Where(_ => _.PortWebAdmin is not null).Random().PortWebAdmin}/images/";
-            return $"<title>{string.Join('|', Farm.Distinct().Select(_ => _.ServerName!))}</title><link rel=\"shortcut icon\" href=\"{Host}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{Host}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{Host}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
+            return $"<title>{string.Join(" | ", Farm.Select(_ => _.ServerName!).Distinct())}</title><link rel=\"shortcut icon\" href=\"{Host}favicon.ico\" type=\"image/x-icon\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{Host}kf2.css\"><link rel=\"stylesheet\" type=\"text/css\" href=\"{Host}kf2modern.css\"><script type=\"text/javascript\">function WebAdmin(Port){{window.location.replace(window.location.protocol +\"//\"+window.location.hostname+\":\"+Port)}}</script>";
         }
 
         static string GetBody() => string.Join("<br>", Farm.Select(Server => (Server.Port, Server.ConfigSubDir, Server.PortWebAdmin)).Select(Server => $"{(Server.PortWebAdmin is not null ? $"<a href=# onclick=\"WebAdmin(" + Server.PortWebAdmin + ")\">&#x1f9d9</a>" : "&#x274c")}&nbsp;<a href=\"steam://rungameid/232090//-SteamConnectIP={IP}:{Server.Port}\">{Server.ConfigSubDir}</a>")) + "<footer>" + DateTime.Now.ToString("o") + "</footer>";
