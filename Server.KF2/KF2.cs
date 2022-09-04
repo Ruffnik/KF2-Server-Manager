@@ -161,7 +161,7 @@ public class KF2
                     { }
                 });
                 string[] Lines;
-                while (!(File.Exists(Log) && 0 < new FileInfo(Log).Length && (Lines = ReadAllLines(Log)).Any(_ => _.Contains(InitCompleted))))
+                while (!(Exists(Log) && (Lines = ReadAllLines(Log)).Any(_ => _.Contains(InitCompleted))))
                     Thread.Sleep(new TimeSpan(0, 1, 0));
                 IP = IPAddress.Parse(Lines.Where(_ => _.Contains(InitCompleted)).First().Split(InitCompleted)[1].Trim().Split(' ')[0]);
                 if (HackINIs())
@@ -433,6 +433,21 @@ public class KF2
     {
         using FileStream Stream = new(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         return new StreamReader(Stream).ReadToEnd().Split(Environment.NewLine);
+    }
+
+    static bool Exists(string Path)
+    {
+        if (!File.Exists(Path))
+            return false;
+        else
+            try
+            {
+                return 0 < new FileInfo(Path).Length;
+            }
+            catch (FileNotFoundException)
+            {
+                return false;
+            }
     }
 
     static bool TryRead(string Path, ref string[]? Collection)
