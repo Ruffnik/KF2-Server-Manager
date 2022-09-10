@@ -431,8 +431,15 @@ public class KF2
     #region File system
     static string[] ReadAllLines(string Path)
     {
-        using FileStream Stream = new(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-        return new StreamReader(Stream).ReadToEnd().Split(Environment.NewLine);
+        try
+        {
+            using FileStream Stream = new(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            return new StreamReader(Stream).ReadToEnd().Split(Environment.NewLine);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Array.Empty<string>();
+        }
     }
 
     static bool Exists(string Path)
